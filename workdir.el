@@ -5,7 +5,7 @@
 ;; Author:  <joerg@joergvolbers.de>
 ;; Keywords: files
 ;; Version: 0.1
-;; Package-Requires: (seq org reader-db)
+;; Package-Requires: (seq reader-db)
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -41,7 +41,6 @@
 ;; --------------------------------------------------------------------------------
 ;; * Dependencies
 (require 'seq)
-(require 'org)
 (require 'reader-db)
 
 ;; --------------------------------------------------------------------------------
