@@ -38,12 +38,17 @@ Every change is immediately reflected in this data base.
  * Populate the data base automatically by finding all work sheets
    'within' a given directory (only via elisp)
 
+## Requirements
+
+Workdir depends on the following packages:
+
+* `reader-db`
+ * `seq`
+
 ## Minimal Installation 
 
-Workdir does not define any key binding by itself. Write a hydra or,
-alternatively, use the following minimal configuration:
-
-Workdir requires the package `reader-db`.
+Workdir does not define any key binding by itself. Write a hydra.
+Alternatively, use the following minimal configuration:
 
 ```
 (use-package workdir
@@ -74,6 +79,7 @@ You can customize the following variables:
    dirs.
 
  * `workdir-visit-worksheet-hook` -- Hook with a list of functions
-   which are called when visiting a work sheet. The functions are
-   called with the work sheet file as the current buffer and should
-   not accept any argument.
+   which are called when visiting a work sheet the first time. The
+   functions are called with the work sheet file as the current buffer
+   and should not accept any argument.
+   
