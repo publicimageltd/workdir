@@ -343,8 +343,8 @@ Finally run hook `workdir-visit-worksheet-hook'."
 
 ;; * Create Workdir
 
-(defun workdir-new-project-path (name)
-  "Create a sane project path for a possible new project with the name NAME."
+(defun workdir-convert-name-to-project-path (name)	
+  "Remove whitespace in NAME."
   (thread-last
       name
     (string-trim)
@@ -361,7 +361,7 @@ Ask for confirmation if CONFIRM is set."
     (user-error "No project name. Canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
     (user-error "Name '%s' contains a path separator" name))
-  (let ((path (workdir-new-project-path name)))
+  (let ((path (workdir-convert-name-to-project-path name)))
     (if (or (not confirm) (y-or-n-p (format "Create new project '%s'? " path)))
 	(if (file-exists-p path)
 	    (user-error "Directory '%s' already exists" path)
