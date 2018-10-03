@@ -184,9 +184,14 @@ Remove duplicate files, normalize path names, only readable files."
   "Add currently visited file as a new work sheet to the data base."
   (interactive)
   (when-let ((file (buffer-file-name)))
-    (workdir-add-file file)
-    (when (org-agenda-file-p) (org-agenda-file-to-front))
-    (message "Added visiting file as work sheet.")))
+    (if (seq-contains (workdir-read-worksheets) (expand-file-name file) #'string=)
+	(user-error "Current buffer's file already registered as work sheet.")
+      (workdir-add-file file)
+      (message "Registered current buffer's file as work sheet"
+	       (if (not (org-agenda-file-p))
+		   "."
+		 (org-agenda-file-to-front)
+		 " and added it to the agenda file list.")))))
     
 (defun workdir-remove-file (file)
   "Remove FILE from the work sheet data base. Exact match required."
