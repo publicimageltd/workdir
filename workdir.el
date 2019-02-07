@@ -315,7 +315,7 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 		worksheets))
 
 ;; not covered by test
-(defun workdir--do-select (worksheets prompt &optional no-match-required)
+(defun workdir--prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
   (when (featurep 'ivy)
     (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
@@ -372,7 +372,7 @@ If PREFIX is (4), switch to worksheet in current window and delete other windows
 If PREFIX is (16), switch to worksheet in other window.
 
 Finally run hook `workdir-visit-worksheet-hook'."
-  (interactive (list (workdir--do-select (workdir-read-worksheets) "Select or create a work dir: " t)
+  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
   (if (not (seq-contains (workdir-read-worksheets) path #'string=))
       (workdir-create path t)
@@ -429,7 +429,7 @@ Ask for confirmation if CONFIRM is set."
 ;;;###autoload
 (defun workdir-unregister (worksheet)
   "Remove WORKSHEET from the internal register and from the org agenda list."
-  (interactive (list (workdir-guess-or-select-worksheet "Unregister worksheet: ")))
+  (interactive (list (workdir-guess-or-prompt-worksheet "Unregister worksheet: ")))
   (unless worksheet
     (user-error "Canceled"))
   ;;
@@ -444,7 +444,7 @@ Ask for confirmation if CONFIRM is set."
   "Delete WORKSHEET and the complete workdir defined by WORKSHEET.
 
 Do it UNCONDITIONALLY (no questions asked) if wanted."
-  (interactive (list (workdir--do-select (workdir-read-worksheets) "Delete workdir: ")))
+  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Delete workdir: ")))
   (unless worksheet
     (user-error "Canceled"))
   (let* ((files      (directory-files (file-name-directory worksheet) nil directory-files-no-dot-files-regexp t))
@@ -464,9 +464,9 @@ Do it UNCONDITIONALLY (no questions asked) if wanted."
 ;; * Guess Workdir
 
 (defun workdir-guess-file-name (&optional buffer)
-  "Return file name of BUFFER.
+  "Return the file name of BUFFER.
 
-Also handles some edge cases, like dired or indirect buffers.."
+Also handles some edge cases, like dired or indirect buffers."
   (with-current-buffer (or buffer (current-buffer))
     (cond
      ((derived-mode-p 'dired-mode) (expand-file-name default-directory))
@@ -475,50 +475,57 @@ Also handles some edge cases, like dired or indirect buffers.."
      (t nil))))
      
 (defun workdir-guess-workdir ()
-  "Guess to what workdir the current buffer's file might belong to."
-  (when-let ((file-name (workdir-guess-file-name)))
-    (let* ((workdir-list         (mapcar #'file-name-directory (workdir-read-worksheets)))
-	   (workdirs-as-regexps  (mapcar (workdir-compose (workdir-curry #'concat "\\`") #'regexp-quote) workdir-list))
-	   (dir-name                  (seq-find (workdir-rcurry #'string-match-p file-name) workdirs-as-regexps)))
-      (when dir-name
-	(seq-elt workdir-list (seq-position workdirs-as-regexps dir-name))))))
+  "Guess the workdir the current buffer's file might belong to.
 
-(defun workdir-guess-or-select-workdir (prompt)
+Return NIL if no associated worksheet can be found."
+  (when-let* ((file-name            (workdir-guess-file-name))
+	      (workdir-list         (mapcar #'file-name-directory (workdir-read-worksheets)))
+	      (workdirs-as-regexps  (mapcar (workdir-compose (workdir-curry #'concat "\\`") #'regexp-quote) workdir-list))
+	      (dir-name             (seq-find (workdir-rcurry #'string-match-p file-name) workdirs-as-regexps)))
+    (seq-elt workdir-list (seq-position workdirs-as-regexps dir-name))))
+
+(defun workdir-guess-or-prompt-visiting-workdir (prompt)
   "Guess current buffer's workdir, or PROMPT user to select a currently visited worksheet."
   (or (workdir-guess-workdir)
-      (workdir--do-select (seq-filter #'find-buffer-visiting (workdir-read-worksheets))
-			  prompt)))
+      (when-let ((worksheet (workdir--prompt-for-worksheet
+			     (seq-filter #'find-buffer-visiting (workdir-read-worksheets))
+			     prompt)))
+	(file-name-directory worksheet))))
 
-(defun workdir-guess-or-select-worksheet (prompt)
-  "Guess current worksheet or PROMPT user to select worksheet."
+(defun workdir-guess-or-prompt-worksheet (prompt)
+  "Guess current worksheet or PROMPT user to select one."
   (if-let ((dir (workdir-guess-workdir)))
       (buffer-file-name)
-    (workdir--do-select (workdir-read-worksheets) prompt)))
+    (workdir--prompt-for-worksheet (workdir-read-worksheets) prompt)))
 
 ;; * Killing or Ibuffer all Workdir Buffers
 
-(defun workdir-belongs-to-directory-p (file base-dir)
-  "Return t if FILE is part of the directory tree rooted at BASE-DIR."
-  (string-match-p (concat "\\`" (regexp-quote (expand-file-name base-dir))) (expand-file-name file)))
+(defun workdir-buffer-belongs-to-worksheet-p (worksheet-or-workdir buffer)
+  "Check whether BUFFER refers to a file belonging to the workdir defined by WORKSHEET-OR-WORKDIR.
 
-(defun workdir-buffer-belongs-to-worksheet-p (worksheet buffer)
-  "Check whether BUFFER refers to a file belonging to the workdir defined by WORKSHEET."
-  (let* ((base-dir (file-name-directory worksheet))
-	 (file     (workdir-guess-file-name buffer)))
-    (when file (workdir-belongs-to-directory-p file base-dir))))
+Argument can be either a full file path or a directory."
+  (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
+	      (file     (workdir-guess-file-name buffer))
+	      (exp-dir  (expand-file-name base-dir))
+	      (exp-file (expand-file-name file)))
+    (string-match-p (concat "\\`" (regexp-quote exp-dir)) exp-file)))
 
-(defun workdir-buffers (worksheet)
-  "Return all open buffers, including dired, for WORKSHEET."
-  (seq-filter (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet) (buffer-list)))
+
+(defun workdir-buffers (worksheet-or-workdir)
+  "Return all open buffers, including dired, for WORKSHEET-OR-WORKDIR.
+
+Argument can be either a full path to a worksheet file or just a
+directory path."
+  (seq-filter (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet-or-workdir) (buffer-list)))
 
 ;;;###autoload
-(defun workdir-save-and-kill-buffers (worksheet)
+(defun workdir-save-and-kill-buffers (worksheet-or-workdir)
   "Save and kill all buffers defined by WORKSHEET."
-  (interactive (list (workdir-guess-or-select-workdir " Save and delete all buffers from workdir: ")))
-  (when-let ((buffers (workdir-buffers worksheet)))
+  (interactive (list (workdir-guess-or-prompt-visiting-workdir " Save and delete all buffers from workdir: ")))
+  (when-let ((buffers (workdir-buffers worksheet-or-workdir)))
     (when (y-or-n-p (format "Save and kill all %d buffers belonging to '%s'? "
 			    (length buffers)
-			    (abbreviate-file-name worksheet)))
+			    (abbreviate-file-name worksheet-or-workdir)))
       (while (and buffers
 		  (with-current-buffer (pop buffers)
 		    (save-buffer)
@@ -529,7 +536,7 @@ Also handles some edge cases, like dired or indirect buffers.."
 ;;;###autoload
 (defun workdir-ibuffer (worksheet)
   "Call ibuffer with all files belonging to WORKSHEET."
-  (interactive (list (workdir-guess-or-select-workdir " Select workdir for ibuffer: ")))
+  (interactive (list (workdir-guess-or-prompt-visiting-workdir " Select workdir for ibuffer: ")))
   (let (ibuffer-use-header-line)
     (ibuffer nil "* WORKDIR IBUFFER *"
 	     `((predicate ,(workdir-compose (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet) #'buffer-name))))))
@@ -543,7 +550,7 @@ Also handles some edge cases, like dired or indirect buffers.."
 Even kill modified buffers if UNCONDITIONALLY is set.
 
 Returns t if all buffers have been successfully killed."
-  (interactive (list (workdir-guess-or-select-workdir " Kill all open buffers from workdir: ")))
+  (interactive (list (workdir-guess-or-prompt-visiting-workdir " Kill all open buffers from workdir: ")))
   (let ((buffers (workdir-buffers worksheet)))
     (when unconditionally
       (seq-do (lambda (buf) (with-current-buffer buf (set-buffer-modified-p nil))) buffers))
@@ -551,15 +558,15 @@ Returns t if all buffers have been successfully killed."
 
 ;;;###autoload
 (defun workdir-archive (worksheet target)
-  "Archive the workdir defined by WORKSHEET by moving the whole dir-name to TARGET.
+  "Archive the workdir defined by WORKSHEET by moving the whole directory to TARGET.
 
 Kill all open buffers before archiving.
 Remove the file from the work sheet data base."
-  (interactive (let* ((dir-name  (workdir--do-select (workdir-read-worksheets) " Select workdir to move: "))
-		      (tar  (read-directory-name
-			     (format "Move '%s' to: " (workdir-abbreviate-path dir-name))
-			     (file-name-as-directory workdir-archive-directory) nil t)))
-		 (list dir-name tar)))
+  (interactive (let* ((interactive-worksheet (workdir--prompt-for-worksheet (workdir-read-worksheets) " Select workdir to move: "))
+		      (interactive-target    (read-directory-name
+					      (format "Move '%s' to: " (workdir-abbreviate-path interactive-worksheet))
+					      (file-name-as-directory workdir-archive-directory) nil t)))
+		 (list interactive-worksheet interactive-target)))
   (unless (workdir-kill-buffers worksheet)
     (user-error "There are still buffers visiting files; could not archive workdir"))
   (let* ((from (file-name-directory worksheet))
@@ -579,7 +586,7 @@ Remove the file from the work sheet data base."
 (defun workdir-select-worksheet-subset (prompt pred)
   "PROMPT the user to select from a subset (filtered by PRED) of all available worksheets."
   (let* ((subset (seq-filter pred (workdir-read-worksheets)))
-	 (selection (workdir--do-select subset prompt)))
+	 (selection (workdir--prompt-for-worksheet subset prompt)))
     selection))
 
 (defun workdir-walk-org-tree (tree depth)
@@ -710,7 +717,7 @@ Intended for interactive debugging."
 
 (defun workdir-refile-as-tree (worksheet target-file)
   "Add the contents of WORKSHEET under a single headline to TARGET-FILE."
-  (interactive (list (workdir-guess-or-select-worksheet "Select worksheet to refile: ")
+  (interactive (list (workdir-guess-or-prompt-worksheet "Select worksheet to refile: ")
 		     (or workdir-refile-as-tree-target
 			 (read-file-name "Select target file for refiling: " "~"))))
   (when (file-directory-p target-file)
