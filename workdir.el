@@ -424,6 +424,19 @@ Ask for confirmation if CONFIRM is set."
 		(org-agenda-file-to-front)))))
       (message "Canceled."))))
 
+;; * Unregister Workdir
+
+;;;###autoload
+(defun workdir-unregister (worksheet)
+  "Remove WORKSHEET from the internal register and from the org agenda list."
+  (interactive (list (workdir-guess-or-select-worksheet "Unregister worksheet: ")))
+  (unless worksheet
+    (user-error "Canceled"))
+  ;;
+  (when (org-agenda-file-p worksheet) (org-remove-file worksheet))
+  (workdir-remove-file worksheet)
+  (message "Unregistered worksheet '%s'" worksheet))
+
 ;; * Delete Workdir
 
 ;;;###autoload
