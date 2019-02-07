@@ -36,6 +36,7 @@
 ;;  - API to automatically 'populate' the data base
 
 
+
 ;;; Code:
 
 ;; --------------------------------------------------------------------------------
@@ -363,19 +364,29 @@ All functions are called in sequential order with the worksheet
 buffer current.")
 
 ;;;###autoload
-(defun workdir-select-or-create-worksheet (path other-window)
-  "Visit or create worksheet in PATH.
+(defun workdir-select-or-create-worksheet (path prefix)
+  "Visit or create worksheet in PATH. Display selected worksheet according to PREFIX.
 
-With prefix OTHER-WINDOW, visit worksheet in other window.
+If PREFIX is nil, switch to worksheet in current window.
+If PREFIX is (4), switch to worksheet in current window and delete other windows.
+If PREFIX is (16), switch to worksheet in other window.
+
 Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--do-select (workdir-read-worksheets) "Select or create a work dir: " t)
-		     (not (null current-prefix-arg))))
+		     (car current-prefix-arg)))
   (if (not (seq-contains (workdir-read-worksheets) path #'string=))
       (workdir-create path t)
-    ;; 
-    (if (find-buffer-visiting path)
-	(funcall (if other-window 'switch-to-buffer-other-window 'switch-to-buffer) (find-buffer-visiting path))
-      (funcall (if other-window 'find-file-other-window 'find-file) path))
+    ;;
+    (let* ((target-buffer (or
+			   (find-buffer-visiting path)
+			   ;; one of the rare occasions where find-file-noselect seems fully appropriate
+			   (find-file-noselect path))))
+      (cond
+       ((eq prefix 4)   (progn
+		  	  (switch-to-buffer target-buffer)
+			  (delete-other-windows)))
+       ((eq prefix 16) (switch-to-buffer-other-window target-buffer))
+       (t              (switch-to-buffer target-buffer))))
     ;; 
     (run-hooks 'workdir-visit-worksheet-hook)
     (setq-local workdir-actively-chosen-buffer t)))
