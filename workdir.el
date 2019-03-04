@@ -340,22 +340,22 @@ Useful for hooks to determine \"once only actions\".
 
 If nil, buffer might have been visited with internal functions
 like `find-file', but not with the official workdir selection
-interace `workdir-select-or-create-worksheet'.
+interface `workdir-select-or-create-worksheet'.
 
 If set and t, buffer had been actively selected at least once.")
 
 (defun workdir-visit--todo-tree ()
-  "On first visit of the buffer, show org mode todo tree."
+  "Show org mode todo tree."
   (when (and (eq major-mode 'org-mode)
 	     (not (local-variable-p 'workdir-actively-chosen-buffer)))
     (save-window-excursion
       (org-show-todo-tree nil))))
 
 (defun workdir-visit--bob ()
-  "On first visit of buffer, move point to beginning of buffer."
+  "Move point to beginning of buffer."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
-  
+
 (defvar workdir-visit-worksheet-hook '(workdir-visit--todo-tree
 				       workdir-visit--bob)
   "Hook called after visiting a worksheet.
