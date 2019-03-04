@@ -484,6 +484,14 @@ Return NIL if no associated worksheet can be found."
 	      (dir-name             (seq-find (workdir-rcurry #'string-match-p file-name) workdirs-as-regexps)))
     (seq-elt workdir-list (seq-position workdirs-as-regexps dir-name))))
 
+(defun workdir-get-worksheet (workdir)
+  "Return the worksheet associated with WORKDIR."
+  (when-let ((match  (assoc-string (file-name-as-directory workdir)
+				   (seq-map (lambda (s) (cons (file-name-directory s) s))
+					    (workdir-read-worksheets)))))
+    (cdr match)))
+
+
 (defun workdir-guess-or-prompt-visiting-workdir (prompt)
   "Guess current buffer's workdir, or PROMPT user to select a currently visited worksheet."
   (or (workdir-guess-workdir)
@@ -576,6 +584,21 @@ Remove the file from the work sheet data base."
     ;; we don't remove the original from the data base, since non-existing files are filtered out automatically.
     ;; we don't add the moved file to the data base, since archiving means: get out of my way
     (message "Moved %s to %s." from to)))
+
+
+;;;###autoload
+(defun workdir-go-to-root (&optional prefix)
+  "Go to the root file of the current workdir.
+
+Set the mark before switching to the file."
+  (interactive (list (car current-prefix-arg)))
+  (if-let ((target-dir (workdir-guess-workdir)))
+      (push-mark nil t)
+      (if-let ((target-sheet (workdir-get-worksheet target-dir)))
+	  (workdir-select-or-create-worksheet target-sheet prefix)
+	(message "Could not find root file")
+	(dired target-dir)) ;; open in dired instead
+    (user-error "Could not identify w workdir project associated with the current buffer.")))
 
 ;; * Workdir <-> single subtree
 
