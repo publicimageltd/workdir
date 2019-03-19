@@ -486,10 +486,11 @@ Return NIL if no associated worksheet can be found."
 
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
-  (when-let ((match  (assoc-string (file-name-as-directory workdir)
-				   (seq-map (lambda (s) (cons (file-name-directory s) s))
-					    (workdir-read-worksheets)))))
-    (cdr match)))
+  (when workdir
+    (when-let ((match  (assoc-string (file-name-as-directory workdir)
+				     (seq-map (lambda (s) (cons (file-name-directory s) s))
+					      (workdir-read-worksheets)))))
+      (cdr match))))
 
 
 (defun workdir-guess-or-prompt-visiting-workdir (prompt)
@@ -592,13 +593,13 @@ Remove the file from the work sheet data base."
 
 Set the mark before switching to the file."
   (interactive (list (car current-prefix-arg)))
-  (if-let ((target-dir (workdir-guess-workdir)))
-      (push-mark nil t)
-      (if-let ((target-sheet (workdir-get-worksheet target-dir)))
-	  (workdir-select-or-create-worksheet target-sheet prefix)
-	(message "Could not find root file")
-	(dired target-dir)) ;; open in dired instead
-    (user-error "Could not identify w workdir project associated with the current buffer.")))
+  (when-let ((target-dir (workdir-guess-workdir)))
+    (push-mark nil t)
+    (if-let ((target-sheet (workdir-get-worksheet target-dir)))
+	(workdir-select-or-create-worksheet target-sheet prefix)
+      (message "Could not find root file")
+      (dired target-dir) ;; open in dired instead
+      (user-error "Could not identify workdir project associated with the current buffer."))))
 
 ;; * Workdir <-> single subtree
 
