@@ -364,28 +364,44 @@ All functions are called in sequential order with the worksheet
 buffer current.")
 
 ;;;###autoload
-(defun workdir-select-or-create-worksheet (path prefix)
-  "Visit or create worksheet in PATH. Display selected worksheet according to PREFIX.
+(defun workdir-select-or-create-worksheet (worksheet prefix &optional only-select)
+  "Visit or create WORKSHEET. 
+
+Display worksheet according to PREFIX.
 
 If PREFIX is nil, switch to worksheet in current window.
-If PREFIX is (4), switch to worksheet in current window and delete other windows.
-If PREFIX is (16), switch to worksheet in other window.
+
+If PREFIX is :full-frame, 4 or (4), switch to worksheet in current window and delete other windows.
+
+If PREFIX is :other-windo, 16 or (16), switch to worksheet in other window.
+
+If ONLY-SELECT is t, only select existing workdir in WORKSHEET. Do
+nothing if PATH does not exist yet (i.e., do not create a new
+workdir).
 
 Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
-  (if (not (seq-contains (workdir-read-worksheets) path #'string=))
-      (workdir-create path t)
+  (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
+	   (not only-select))
+      (workdir-create worksheet t)
     ;;
-    (let* ((target-buffer (or
-			   (find-buffer-visiting path)
+    (let* ((visit-mode    (let* ((_prefix (if (listp prefix) (car prefix) prefix)))
+			    (cond
+			     ((eq _prefix 4)  :full-frame)
+			     ((eq _prefix 16) :other-window)
+			     (t               _prefix))))
+	   (target-buffer (or
+			   (find-buffer-visiting worksheet)
 			   ;; one of the rare occasions where find-file-noselect seems fully appropriate
-			   (find-file-noselect path))))
+			   (find-file-noselect worksheet))))
       (cond
-       ((eq prefix 4)   (progn
-		  	  (switch-to-buffer target-buffer)
-			  (delete-other-windows)))
-       ((eq prefix 16) (switch-to-buffer-other-window target-buffer))
+       ((eq visit-mode :full-frame)
+	(progn
+	  (switch-to-buffer target-buffer)
+	  (delete-other-windows)))
+       ((eq visit-mode :other-window)
+	(switch-to-buffer-other-window target-buffer))
        (t              (switch-to-buffer target-buffer))))
     ;; 
     (run-hooks 'workdir-visit-worksheet-hook)
