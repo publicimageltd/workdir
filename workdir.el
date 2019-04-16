@@ -98,7 +98,6 @@ File will be located in the user directory."
   :group 'workdir
   :type 'string)
 
-
 ;; --------------------------------------------------------------------------------
 ;; * Helper Functions
 
@@ -382,6 +381,7 @@ workdir).
 Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
+  (push-mark nil t)
   (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
 	   (not only-select))
       (workdir-create worksheet t)
@@ -555,6 +555,7 @@ directory path."
 		  (with-current-buffer (pop buffers)
 		    (save-buffer)
 		    (kill-buffer)))))))
+
 
 
 
