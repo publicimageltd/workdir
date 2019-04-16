@@ -473,7 +473,7 @@ Do it UNCONDITIONALLY (no questions asked) if wanted."
 	    (workdir-remove-file worksheet)
 	    (when (org-agenda-file-p worksheet) (org-remove-file worksheet))
 	    (delete-directory (file-name-directory worksheet) t)
-	    (message "Directory '%s' deleted." dir-name))
+	    (message "Deleted directory '%s'." dir-name))
 	(message "Canceled.")))))
 
 
