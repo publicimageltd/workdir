@@ -43,6 +43,7 @@
 ;; * Dependencies
 (require 'seq)
 (require 'reader-db)
+(require 'views)
 
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
@@ -405,7 +406,9 @@ Finally run hook `workdir-visit-worksheet-hook'."
        (t              (switch-to-buffer target-buffer))))
     ;; 
     (run-hooks 'workdir-visit-worksheet-hook)
-    (setq-local workdir-actively-chosen-buffer t)))
+    (setq-local workdir-actively-chosen-buffer t)
+    (when (views-store-p (file-name-directory worksheet))
+      (message "There's a view stored in that directory. Call `workdir-read-view' to display it."))))
 
 ;; * Create Workdir
 
@@ -617,6 +620,37 @@ Set the mark before switching to the file."
       (message "Could not find root file")
       (dired target-dir) ;; open in dired instead
       (user-error "Could not identify workdir project associated with the current buffer."))))
+
+;; * Workdir Views
+
+;;;###autoload
+(defun workdir-delete-view (workdir)
+  "Delete current window configuration's view."
+  (interactive (list (workdir-guess-workdir)))
+  (unless workdir
+    (user-error "Cannot delete window configuration store; no work dir defined"))
+  (let* ((filename (views-local-store-name workdir)))
+    (if (file-exists-p filename)
+	(delete-file filename)
+      (user-error "No window configuration stored"))))
+
+;;;###autoload
+(defun workdir-write-view (workdir)
+  "Write current window configuration to current workdir."
+  (interactive (list (workdir-guess-workdir)))
+  (unless workdir
+    (user-error "Cannot write window configuration; no work dir defined"))
+  (views-write workdir))
+
+
+;;;###autoload
+(defun workdir-read-view (workdir)
+  "Read view stored in WORKDIR."
+  (interactive (list (workdir-guess-workdir)))
+  (unless workdir
+    (user-error "Cannot read window configuration; no work dir defined"))
+  (views-read workdir))
+
 
 ;; * Workdir <-> single subtree
 
