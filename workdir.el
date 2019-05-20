@@ -195,7 +195,7 @@ Remove duplicate files, normalize path names, only readable files."
 	(user-error "Current buffer's file already registered as work sheet.")
       (workdir-add-file file)
       (message "Registered current buffer's file as work sheet"
-	       (if (not (org-agenda-file-p))
+	       (if (org-agenda-file-p)
 		   "."
 		 (org-agenda-file-to-front)
 		 " and added it to the agenda file list.")))))
