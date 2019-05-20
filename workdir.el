@@ -639,8 +639,11 @@ Set the mark before switching to the file."
   "Write current window configuration to current workdir."
   (interactive (list (workdir-guess-workdir)))
   (unless workdir
-    (user-error "Cannot write window configuration; no work dir defined"))
-  (views-write workdir))
+    (user-error "Cannot write window configuration; no workdir defined"))
+  (with-temp-message "Writing view to workdir..."
+    (views-write workdir))
+  (message "Writing view to workdir...done"))
+
 
 
 ;;;###autoload
