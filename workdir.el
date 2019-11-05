@@ -36,14 +36,12 @@
 ;;  - API to automatically 'populate' the data base
 
 
-
 ;;; Code:
 
 ;; --------------------------------------------------------------------------------
 ;; * Dependencies
 (require 'seq)
 (require 'reader-db)
-(require 'views)
 
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
@@ -99,6 +97,14 @@ File will be located in the user directory."
   :group 'workdir
   :type 'string)
 
+(defcustom workdir-pre-selection-hook nil
+  "Hook run before switching to a workdir."
+  :group 'workdir)
+
+(defcustom workdir-post-selection-hook nil
+  "Hook run after switching to a workdir."
+  :group 'workdir)
+
 ;; --------------------------------------------------------------------------------
 ;; * Helper Functions
 
@@ -113,8 +119,8 @@ File will be located in the user directory."
 (defsubst workdir-compose (fn &rest more-fn)
   "Return the composition of FN and MORE-FN."
   (seq-reduce (lambda (f g)
-		(lambda (&rest args)
-		  (funcall f (apply g args))))
+		  (lambda (&rest args)
+		    (funcall f (apply g args))))
 	      more-fn
 	      fn))
 
@@ -383,6 +389,7 @@ Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
   (push-mark nil t)
+  (run-hooks 'workdir-pre-selection-hook)
   (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
 	   (not only-select))
       (workdir-create worksheet t)
@@ -404,11 +411,11 @@ Finally run hook `workdir-visit-worksheet-hook'."
        ((eq visit-mode :other-window)
 	(switch-to-buffer-other-window target-buffer))
        (t              (switch-to-buffer target-buffer))))
-    ;; 
+    
+    ;; Worksheet is found (or created). Now run some hooks.
     (run-hooks 'workdir-visit-worksheet-hook)
     (setq-local workdir-actively-chosen-buffer t)
-    (when (views-store-p (file-name-directory worksheet))
-      (message "There's a view stored in that directory. Call `workdir-read-view' to display it."))))
+    (run-hooks 'workdir-post-selection-hook)))
 
 ;; * Create Workdir
 
@@ -486,12 +493,14 @@ Do it UNCONDITIONALLY (no questions asked) if wanted."
   "Return the file name of BUFFER.
 
 Also handles some edge cases, like dired or indirect buffers."
-  (with-current-buffer (or buffer (current-buffer))
-    (cond
-     ((derived-mode-p 'dired-mode) (expand-file-name default-directory))
-     ((buffer-base-buffer) (with-current-buffer (buffer-base-buffer) (expand-file-name buffer-file-name)))
-     (buffer-file-name (expand-file-name buffer-file-name))
-     (t nil))))
+  (if (stringp buffer)
+      buffer
+    (with-current-buffer (or buffer (current-buffer))
+      (cond
+       ((derived-mode-p 'dired-mode) (expand-file-name default-directory))
+       ((buffer-base-buffer) (with-current-buffer (buffer-base-buffer) (expand-file-name buffer-file-name)))
+       (buffer-file-name (expand-file-name buffer-file-name))
+       (t nil)))))
      
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
@@ -614,46 +623,18 @@ Remove the file from the work sheet data base."
 Set the mark before switching to the file."
   (interactive (list (car current-prefix-arg)))
   (when-let ((target-dir (workdir-guess-workdir)))
-    (push-mark nil t)
     (if-let ((target-sheet (workdir-get-worksheet target-dir)))
 	(workdir-select-or-create-worksheet target-sheet prefix)
       (message "Could not find root file")
+      (push-mark nil t)
       (dired target-dir) ;; open in dired instead
       (user-error "Could not identify workdir project associated with the current buffer."))))
 
-;; * Workdir Views
-
 ;;;###autoload
-(defun workdir-delete-view (workdir)
-  "Delete current window configuration's view."
-  (interactive (list (workdir-guess-workdir)))
-  (unless workdir
-    (user-error "Cannot delete window configuration store; no work dir defined"))
-  (let* ((filename (views-local-store-name workdir)))
-    (if (file-exists-p filename)
-	(delete-file filename)
-      (user-error "No window configuration stored"))))
-
-;;;###autoload
-(defun workdir-write-view (workdir)
-  "Write current window configuration to current workdir."
-  (interactive (list (workdir-guess-workdir)))
-  (unless workdir
-    (user-error "Cannot write window configuration; no workdir defined"))
-  (with-temp-message "Writing view to workdir..."
-    (views-write workdir))
-  (message "Writing view to workdir...done"))
-
-
-
-;;;###autoload
-(defun workdir-read-view (workdir)
-  "Read view stored in WORKDIR."
-  (interactive (list (workdir-guess-workdir)))
-  (unless workdir
-    (user-error "Cannot read window configuration; no work dir defined"))
-  (views-read workdir))
-
+(defun workdir-dired-root ()
+  "Open root directory of current workdir in dired."
+  (interactive)
+  (dired (workdir-guess-workdir)))
 
 ;; * Workdir <-> single subtree
 
