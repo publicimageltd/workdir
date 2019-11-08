@@ -35,6 +35,10 @@
 ;;     - On visiting, org mode work sheets are called with a sparse todo tree
 ;;  - API to automatically 'populate' the data base
 
+;; TODO
+;;  - Die interaktiven Funktionen müssen besser von den GRundfunktionen getrennt werden
+;;    (also v.a. bei "create" und "visit"), um besseres Interface zu ermöglichen....
+;;    traue ich mich aber nicht ran, zu müde heute
 
 ;;; Code:
 
@@ -326,12 +330,10 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
   (when (featurep 'ivy)
     (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
   (let* ((alist  (workdir-worksheets-as-alist (workdir-sort-by-date worksheets)))
-	 (key
-	  (completing-read
-	   prompt
-	   alist
-	   nil (not no-match-required) nil
-	   'workdir--selection-history))
+	 (key    (completing-read prompt alist nil
+				  (not no-match-required)
+				  nil
+				  'workdir--selection-history))
 	 (path (cadr (assoc key alist))))
     (if (and (null path) no-match-required)
 	key
@@ -379,7 +381,7 @@ If PREFIX is nil, switch to worksheet in current window.
 
 If PREFIX is :full-frame, 4 or (4), switch to worksheet in current window and delete other windows.
 
-If PREFIX is :other-windo, 16 or (16), switch to worksheet in other window.
+If PREFIX is :other-window, 16 or (16), switch to worksheet in other window.
 
 If ONLY-SELECT is t, only select existing workdir in WORKSHEET. Do
 nothing if PATH does not exist yet (i.e., do not create a new
@@ -417,6 +419,23 @@ Finally run hook `workdir-visit-worksheet-hook'."
     (setq-local workdir-actively-chosen-buffer t)
     (run-hooks 'workdir-post-selection-hook)))
 
+
+(defun workdir-visit-or-create-worksheet (worksheet)
+  "Visit WORKSHEET in the selected window or create it.
+If WORKSHEET does not point to an existing file, try to create a
+new workdir with that name."
+  (if (file-readable-p worksheet)
+      (workdir-visit-worksheet worksheet)
+    (workdir-create worksheet t)))
+
+(defun workdir-visit-worksheet (worksheet)
+  "Visit WORKSHEET in the selected window."      
+  (let* ((target-buffer (or (find-buffer-visiting worksheet)
+			    (find-file-noselect worksheet))))
+    ;; Maybe allow to pass an fn for more display flexibility?
+    (switch-to-buffer target-buffer)
+    (run-hooks 'workdir-visit-worksheet-hook)))
+
 ;; * Create Workdir
 
 (defun workdir-convert-name-to-project-path (name)	
@@ -428,19 +447,17 @@ Finally run hook `workdir-visit-worksheet-hook'."
     (concat (file-name-as-directory (expand-file-name workdir-new-dirs-directory)))))
 
 ;;;###autoload
-(defun workdir-create (name &optional confirm)
-  "Create workdir NAME within `workdir-new-dirs-directory'.
-
-Ask for confirmation if CONFIRM is set."
+(defun workdir-create (name)
+  "Create workdir NAME within `workdir-new-dirs-directory'."
   (interactive "MNew workdir project: ")
   (when (or (null name) (string-blank-p name))
     (user-error "No project name. Canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
-    (user-error "Name '%s' contains a path separator" name))
-  (let ((path (workdir-convert-name-to-project-path name)))
-    (if (or (not confirm) (y-or-n-p (format "Create new project '%s'? " path)))
+    (user-error "Name '%s' must not contain a path separator" name))
+  (let* ((path (workdir-convert-name-to-project-path name)))
+    (if (y-or-n-p (format "Create new workdir project '%s'? " path))
 	(if (file-exists-p path)
-	    (user-error "Directory '%s' already exists" path)
+	    (user-error "Could not create new project, directory '%s' already exists" path)
 	  (make-directory path)
 	  (let ((sheet (concat (file-name-as-directory path) workdir-default-sheet)))
 	    (with-temp-file sheet) ;; create empty file
