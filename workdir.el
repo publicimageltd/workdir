@@ -394,7 +394,7 @@ Finally run hook `workdir-visit-worksheet-hook'."
   (run-hooks 'workdir-pre-selection-hook)
   (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
 	   (not only-select))
-      (workdir-create worksheet t)
+      (workdir-create worksheet)
     ;;
     (let* ((visit-mode    (let* ((_prefix (if (listp prefix) (car prefix) prefix)))
 			    (cond
