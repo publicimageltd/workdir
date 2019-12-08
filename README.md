@@ -45,6 +45,8 @@ Workdir depends on the following packages:
 * `reader-db`
  * `seq`
 
+You can find `reader-db` in my repository.
+
 ## Minimal Installation 
 
 Workdir does not define any key binding by itself. Write a hydra.
