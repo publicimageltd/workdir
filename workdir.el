@@ -69,11 +69,9 @@ Path has to end with a trailing slash.")
   nil
   "Lightweight project management.")
 
-(defcustom workdir-dirlist-file-name
+(defcustom workdir-database-name
   "worksheets"
-  "File storing all available work sheets.
-
-File will be located in the user directory."
+  "Data base file name. File will be located in the user directory."
   :group 'workdir
   :type 'string)
 
@@ -137,7 +135,7 @@ File will be located in the user directory."
 
 (defun workdir-worksheet-database-file ()
   "Return full path to the data base file."
-  (locate-user-emacs-file workdir-dirlist-file-name))
+  (locate-user-emacs-file workdir-database-name))
 
 (defun workdir-new-data-base ()
   "Create a completely new data base file."
