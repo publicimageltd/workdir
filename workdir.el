@@ -144,14 +144,14 @@ buffer set as current."
 	      fn))
 
 (defun workdir-path-separator ()
-  "Find out the separator used by the operating system."
+  "Find out the path separator used by the operating system."
   (substring (file-name-as-directory "x") 1 2))
 
 ;; --------------------------------------------------------------------------------
 ;; * Database
 
 (defun workdir-worksheet-database-file ()
-  "Return full path to the data base file."
+  "Return the full path to the data base file."
   (locate-user-emacs-file workdir-database-name))
 
 (defun workdir-new-data-base ()
@@ -159,7 +159,7 @@ buffer set as current."
   (reader-db-init (workdir-worksheet-database-file) workdir-database-definition))
 
 (defun workdir-read-worksheets ()
-  "Return the work sheets stored in the data base, excluding non-existent files."
+  "Return the work sheets stored in the data base, excluding any non-existent files."
   (seq-filter #'file-exists-p (reader-db-get (workdir-worksheet-database-file) 'worksheets)))
 
 (defun workdir-write-worksheets (worksheets)
@@ -169,16 +169,14 @@ buffer set as current."
   (reader-db-put (workdir-worksheet-database-file) 'worksheets worksheets))
 
 (defun workdir-sanitize-data-base ()
-  "Clean up data base.
-
-Remove duplicate files, normalize path names, only readable files."
+  "Clean up the data base.
+Remove duplicate files, normalize the path names, allow only readable files."
   (workdir-write-worksheets
    (seq-remove #'null
 	       (seq-map
 		(lambda (f) (and (file-readable-p f) f))
 		(seq-uniq (seq-map #'expand-file-name
 				   (workdir-read-worksheets)))))))
-
 
 ;; Populate the data base programmatically.
 
