@@ -56,11 +56,17 @@
 (defvar workdir-parent-dir-regexp
   "\\`.*/\\(.+?\\)/$"
   "Regexp matching the parent directory of a directory path.
-
 Path has to end with a trailing slash.")
 
 (defvar workdir-database-definition '((worksheets))
   "Definition for the reader db data base.")
+
+(defvar-local workdir-actively-chosen-buffer nil
+  "Buffer local marker set by `workdir-select-or-create-worksheet'.
+Useful for hooks to determine \"once only actions\": If the value
+is nil, the buffer has not been visited by an interactive workdir
+function yet. If the variable is set to t, however, the buffer
+had been actively selected at least once.")
 
 ;; --------------------------------------------------------------------------------
 ;; * Customizable Variables
@@ -81,25 +87,42 @@ Path has to end with a trailing slash.")
   :group 'workdir
   :type 'string)
 
+(defcustom workdir-further-directories
+  '("~/Dokumente/Bewerbungen")
+  "List of directories where workdirs might be stored."
+  :group 'workdir
+  :type '(repeat directory))
+
 (defcustom workdir-archive-directory
   "~/Dokumente/Archiv"
   "Default move target for archiving work dirs."
   :group 'workdir
-  :type 'file)
+  :type 'directory)
 
 (defcustom workdir-new-dirs-directory
   "~/Dokumente/projekte"
   "Directory in which new work dirs are created."
   :group 'workdir
-  :type 'string)
+  :type 'directory)
 
 (defcustom workdir-pre-selection-hook nil
   "Hook run before switching to a workdir."
-  :group 'workdir)
+  :group 'workdir
+  :type 'hook)
 
 (defcustom workdir-post-selection-hook nil
   "Hook run after switching to a workdir."
-  :group 'workdir)
+  :group 'workdir
+  :type 'hook)
+
+(defcustom workdir-visit-worksheet-hook '(workdir-visit--todo-tree
+					  workdir-visit--bob)
+  "Hook called after visiting a worksheet.
+All functions are called in sequential order with the worksheet
+buffer set as current."
+  :group 'workdir
+  :type 'hook
+  :options '(workdir-visit--todo-tree workdir-visit--bob))
 
 ;; --------------------------------------------------------------------------------
 ;; * Helper Functions
@@ -251,48 +274,15 @@ FILE should point to a file, not to a directory."
 
 ;; * Minibuffer interface
 
-;; not covered by test
 (defun workdir-sort-by-date (worksheets)
   "Sort WORKSHEETS by modification date."
   (seq-sort #'file-newer-than-file-p worksheets))
 
-;; not covered by test
-(defvar workdir--selector-format
-  '(;;("%15s" workdir--selector-title-info)
-    ("%9s" workdir--selector-agenda-info)
-    ("%1s" workdir--selector-visited-info)
-    ("%1s" workdir--selector-modified-info)
-    ("%s"  workdir-abbreviate-path))
-  "Format specification for displaying a worksheet as selection candidate.
-
-This has to be a list defining the format string and a function.
-The funcion takes the path as an argument and returns the data
-appropriate for the format string.
-
-The results will be joined with a blank space.")
-
-;; not covered by test
-(defun workdir--selector-title-info (worksheet)
-  (let* ((rg "rg '^#\\+TITLE' -m 1"))
-    (concat 
-     (when-let ((title (shell-command-to-string (concat rg " " (shell-quote-argument worksheet)))))
-       (unless (string-empty-p title)
-	 (string-trim
-	  (substring (string-trim title) 8)))))))
-
-;; not covered by test
-(defun workdir--selector-agenda-info (worksheet)
-  "Return a string indicating that WORKSHEET is a registered org agenda file."
-  (if (seq-contains (org-agenda-files) worksheet) " (Agenda)" ""))
 
 
-;; not covered by test
-(defun workdir--selector-visited-info (worksheet)
-  "Return a string indicating that WORKSHEET is a currently visited buffer."
-  (if (find-buffer-visiting worksheet) "V" ""))
 
-;; not covered by test
-(defun workdir--selector-modified-info (worksheet)
+
+
   "Return a string indicating that WORKSHEET is modified and not saved yet."
   (let (buf)
     (if (and (setq buf (find-buffer-visiting worksheet))
@@ -300,29 +290,9 @@ The results will be joined with a blank space.")
 	"*"
       "")))
   
-;; not covered by test
-(defun workdir-path-selector (format-list worksheet)
-  "Build a string representing WORKSHEET for minibuffer selection.
 
-For the format of FORMAT-LIST, see `workdir--selector-format'."
-  (string-join (seq-map (lambda (spec)
-			  (format (nth 0 spec) (funcall (nth 1 spec) worksheet)))
-			format-list)
-	       " "))
-  
-;; not covered by test
-(defun workdir-worksheets-as-alist (worksheets)
-  "Return WORKSHEETS as an alist suitable for `completing-read'."
-  (seq-group-by (workdir-curry #'workdir-path-selector workdir--selector-format)
-		worksheets))
 
-;; not covered by test
-(defun workdir--prompt-for-worksheet (worksheets prompt &optional no-match-required)
-  "PROMPT the user to select one of WORKSHEETS."
-  (when (featurep 'ivy)
-    (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
-  (let* ((alist  (workdir-worksheets-as-alist (workdir-sort-by-date worksheets)))
-	 (key    (completing-read prompt alist nil
+
 				  (not no-match-required)
 				  nil
 				  'workdir--selection-history))
@@ -332,17 +302,6 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
       path)))
 
 ;; * Visit worksheet
-
-(defvar-local workdir-actively-chosen-buffer nil
-  "Buffer local marker set by `workdir-select-or-create-worksheet'.
-
-Useful for hooks to determine \"once only actions\".
-
-If nil, buffer might have been visited with internal functions
-like `find-file', but not with the official workdir selection
-interface `workdir-select-or-create-worksheet'.
-
-If set and t, buffer had been actively selected at least once.")
 
 (defun workdir-visit--todo-tree ()
   "Show org mode todo tree."
@@ -355,13 +314,6 @@ If set and t, buffer had been actively selected at least once.")
   "Move point to beginning of buffer."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
-
-(defvar workdir-visit-worksheet-hook '(workdir-visit--todo-tree
-				       workdir-visit--bob)
-  "Hook called after visiting a worksheet.
-
-All functions are called in sequential order with the worksheet
-buffer current.")
 
 ;;;###autoload
 (defun workdir-select-or-create-worksheet (worksheet prefix &optional only-select)
