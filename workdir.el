@@ -238,7 +238,6 @@ Remove duplicate files, normalize the path names, allow only readable files."
 
 (defun workdir-parent-directory (file)
   "Return the parent directory of FILE.
-
 If FILE is itself a directory path, it has to end with a trailing
 slash."
   (let* ((file-name  (file-name-directory (expand-file-name file)))
@@ -249,7 +248,6 @@ slash."
 
 (defun workdir-abbreviate-path (file)
   "Return an abbreviated version of FILE.
-
 FILE should point to a file, not to a directory."
   (concat
    (file-name-as-directory (workdir-parent-directory file))
@@ -270,11 +268,9 @@ FILE should point to a file, not to a directory."
     ("%1s" workdir--selector-modified-info)
     ("%s"  workdir-abbreviate-path))
   "Format specification for displaying a worksheet as selection candidate.
-
 This has to be a list defining the format string and a function.
 The funcion takes the path as an argument and returns the data
 appropriate for the format string.
-
 The results will be joined with a blank space.")
 
 (defun workdir--selector-title-info (worksheet)
@@ -288,7 +284,6 @@ The results will be joined with a blank space.")
 (defun workdir--selector-agenda-info (worksheet)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
   (if (seq-contains (org-agenda-files) worksheet) " (Agenda)" ""))
-
 
 (defun workdir--selector-visited-info (worksheet)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
@@ -304,7 +299,6 @@ The results will be joined with a blank space.")
   
 (defun workdir-path-selector (format-list worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
-
 For the format of FORMAT-LIST, see `workdir--selector-format'."
   (string-join (seq-map (lambda (spec)
 			  (format (nth 0 spec) (funcall (nth 1 spec) worksheet)))
@@ -334,13 +328,10 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 
 (defvar-local workdir-actively-chosen-buffer nil
   "Buffer local marker set by `workdir-select-or-create-worksheet'.
-
 Useful for hooks to determine \"once only actions\".
-
 If nil, buffer might have been visited with internal functions
 like `find-file', but not with the official workdir selection
 interface `workdir-select-or-create-worksheet'.
-
 If set and t, buffer had been actively selected at least once.")
 
 (defun workdir-visit--todo-tree ()
@@ -358,19 +349,13 @@ If set and t, buffer had been actively selected at least once.")
 ;;;###autoload
 (defun workdir-select-or-create-worksheet (worksheet prefix &optional only-select)
   "Visit or create WORKSHEET. 
-
 Display worksheet according to PREFIX.
-
 If PREFIX is nil, switch to worksheet in current window.
-
 If PREFIX is :full-frame, 4 or (4), switch to worksheet in current window and delete other windows.
-
 If PREFIX is :other-window, 16 or (16), switch to worksheet in other window.
-
 If ONLY-SELECT is t, only select existing workdir in WORKSHEET. Do
 nothing if PATH does not exist yet (i.e., do not create a new
 workdir).
-
 Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
@@ -469,7 +454,6 @@ new workdir with that name."
 ;;;###autoload
 (defun workdir-delete (worksheet &optional unconditionally)
   "Delete WORKSHEET and the complete workdir defined by WORKSHEET.
-
 Do it UNCONDITIONALLY (no questions asked) if wanted."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Delete workdir: ")))
   (unless worksheet
@@ -492,7 +476,6 @@ Do it UNCONDITIONALLY (no questions asked) if wanted."
 
 (defun workdir-guess-file-name (&optional buffer)
   "Return the file name of BUFFER.
-
 Also handles some edge cases, like dired or indirect buffers."
   (if (stringp buffer)
       buffer
@@ -505,7 +488,6 @@ Also handles some edge cases, like dired or indirect buffers."
      
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
-
 Return NIL if no associated worksheet can be found."
   (when-let* ((file-name            (workdir-guess-file-name))
 	      (workdir-list         (mapcar #'file-name-directory (workdir-read-worksheets)))
@@ -540,7 +522,6 @@ Return NIL if no associated worksheet can be found."
 
 (defun workdir-buffer-belongs-to-worksheet-p (worksheet-or-workdir buffer)
   "Check whether BUFFER refers to a file belonging to the workdir defined by WORKSHEET-OR-WORKDIR.
-
 Argument can be either a full file path or a directory."
   (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
 	      (file     (workdir-guess-file-name buffer))
@@ -551,7 +532,6 @@ Argument can be either a full file path or a directory."
 
 (defun workdir-buffers (worksheet-or-workdir)
   "Return all open buffers, including dired, for WORKSHEET-OR-WORKDIR.
-
 Argument can be either a full path to a worksheet file or just a
 directory path."
   (seq-filter (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet-or-workdir) (buffer-list)))
@@ -581,9 +561,7 @@ directory path."
 
 (defun workdir-kill-buffers (worksheet &optional unconditionally)
   "Kill all open buffers defined by WORKSHEET.
-
 Even kill modified buffers if UNCONDITIONALLY is set.
-
 Returns t if all buffers have been successfully killed."
   (interactive (list (workdir-guess-or-prompt-visiting-workdir " Kill all open buffers from workdir: ")))
   (let ((buffers (workdir-buffers worksheet)))
@@ -594,7 +572,6 @@ Returns t if all buffers have been successfully killed."
 ;;;###autoload
 (defun workdir-archive (worksheet target)
   "Archive the workdir defined by WORKSHEET by moving the whole directory to TARGET.
-
 Kill all open buffers before archiving.
 Remove the file from the work sheet data base."
   (interactive (let* ((interactive-worksheet (workdir--prompt-for-worksheet (workdir-read-worksheets) " Select workdir to move: "))
@@ -616,7 +593,6 @@ Remove the file from the work sheet data base."
 ;;;###autoload
 (defun workdir-go-to-root (&optional prefix)
   "Go to the root file of the current workdir.
-
 Set the mark before switching to the file."
   (interactive (list (car current-prefix-arg)))
   (when-let ((target-dir (workdir-guess-workdir)))
