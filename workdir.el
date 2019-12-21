@@ -100,6 +100,15 @@ Path has to end with a trailing slash.")
   "Hook run after switching to a workdir."
   :group 'workdir)
 
+(defcustom workdir-visit-worksheet-hook
+  '(workdir-visit--todo-tree  workdir-visit--bob)
+  "Hook called after visiting a worksheet.
+All functions are called in sequential order with the worksheet
+buffer current."
+  :group 'workdir
+  :type 'hook
+  :options '(workdir-visit--todo-tree  workdir-visit--bob))
+
 ;; --------------------------------------------------------------------------------
 ;; * Helper Functions
 
@@ -343,13 +352,6 @@ If set and t, buffer had been actively selected at least once.")
   "Move point to beginning of buffer."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
-
-(defvar workdir-visit-worksheet-hook '(workdir-visit--todo-tree
-				       workdir-visit--bob)
-  "Hook called after visiting a worksheet.
-
-All functions are called in sequential order with the worksheet
-buffer current.")
 
 ;;;###autoload
 (defun workdir-select-or-create-worksheet (worksheet prefix &optional only-select)
