@@ -248,12 +248,10 @@ FILE should point to a file, not to a directory."
 
 ;; * Minibuffer interface
 
-;; not covered by test
 (defun workdir-sort-by-date (worksheets)
   "Sort WORKSHEETS by modification date."
   (seq-sort #'file-newer-than-file-p worksheets))
 
-;; not covered by test
 (defvar workdir--selector-format
   '(;;("%15s" workdir--selector-title-info)
     ("%9s" workdir--selector-agenda-info)
@@ -268,7 +266,6 @@ appropriate for the format string.
 
 The results will be joined with a blank space.")
 
-;; not covered by test
 (defun workdir--selector-title-info (worksheet)
   (let* ((rg "rg '^#\\+TITLE' -m 1"))
     (concat 
@@ -277,18 +274,15 @@ The results will be joined with a blank space.")
 	 (string-trim
 	  (substring (string-trim title) 8)))))))
 
-;; not covered by test
 (defun workdir--selector-agenda-info (worksheet)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
   (if (seq-contains (org-agenda-files) worksheet) " (Agenda)" ""))
 
 
-;; not covered by test
 (defun workdir--selector-visited-info (worksheet)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
   (if (find-buffer-visiting worksheet) "V" ""))
 
-;; not covered by test
 (defun workdir--selector-modified-info (worksheet)
   "Return a string indicating that WORKSHEET is modified and not saved yet."
   (let (buf)
@@ -297,7 +291,6 @@ The results will be joined with a blank space.")
 	"*"
       "")))
   
-;; not covered by test
 (defun workdir-path-selector (format-list worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
 
@@ -307,13 +300,11 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 			format-list)
 	       " "))
   
-;; not covered by test
 (defun workdir-worksheets-as-alist (worksheets)
   "Return WORKSHEETS as an alist suitable for `completing-read'."
   (seq-group-by (workdir-curry #'workdir-path-selector workdir--selector-format)
 		worksheets))
 
-;; not covered by test
 (defun workdir--prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
   (when (featurep 'ivy)
