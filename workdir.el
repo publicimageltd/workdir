@@ -84,21 +84,23 @@ Path has to end with a trailing slash.")
   "~/Dokumente/Archiv"
   "Default move target for archiving work dirs."
   :group 'workdir
-  :type 'file)
+  :type 'directory)
 
 (defcustom workdir-new-dirs-directory
   "~/Dokumente/projekte"
   "Directory in which new work dirs are created."
   :group 'workdir
-  :type 'string)
+  :type 'directory)
 
 (defcustom workdir-pre-selection-hook nil
   "Hook run before switching to a workdir."
-  :group 'workdir)
+  :group 'workdir
+  :type 'hook)
 
 (defcustom workdir-post-selection-hook nil
   "Hook run after switching to a workdir."
-  :group 'workdir)
+  :group 'workdir
+  :type 'hook)
 
 (defcustom workdir-visit-worksheet-hook
   '(workdir-visit--todo-tree  workdir-visit--bob)
