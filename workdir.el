@@ -379,6 +379,8 @@ Finally run hook `workdir-visit-worksheet-hook'."
     (setq-local workdir-actively-chosen-buffer t)
     (run-hooks 'workdir-post-selection-hook)))
 
+;; * Refactored version of workdir create / visit
+
 
 (defun workdir-visit-or-create-worksheet (worksheet)
   "Visit WORKSHEET in the selected window or create it.
@@ -386,7 +388,7 @@ If WORKSHEET does not point to an existing file, try to create a
 new workdir with that name."
   (if (file-readable-p worksheet)
       (workdir-visit-worksheet worksheet)
-    (workdir-create worksheet t)))
+    (workdir-create worksheet)))
 
 (defun workdir-visit-worksheet (worksheet)
   "Visit WORKSHEET in the selected window."      
@@ -394,38 +396,51 @@ new workdir with that name."
 			    (find-file-noselect worksheet))))
     ;; Maybe allow to pass an fn for more display flexibility?
     (switch-to-buffer target-buffer)
-    (run-hooks 'workdir-visit-worksheet-hook)))
+    (run-hooks 'workdir-visit-worksheet-hook)
+    (setq-local workdir-actively-chosen-buffer t)
+    (run-hooks 'workdir-post-selection-hook)))
 
 ;; * Create Workdir
 
-(defun workdir-convert-name-to-project-path (name)	
-  "Remove whitespace in NAME."
+(defun workdir-sanitize-name (name)	
+  "Remove whitespaces in NAME."
   (thread-last
       name
     (string-trim)
-    (replace-regexp-in-string "[^[:alnum:]]" "_")
-    (concat (file-name-as-directory (expand-file-name workdir-new-dirs-directory)))))
+    (replace-regexp-in-string "[^[:alnum:]]" "_")))
 
+(defun workdir-join-paths (basedir dirname)
+  "Join BASEDIR and DIRNAME to form a path."
+  (concat (file-name-as-directory (expand-file-name basedir)) dirname))
+
+(defun workdir-do-create (basedir name sheet-name &optional register-file)
+  "Within BASEDIR, create new workdir NAME and a worksheet file SHEET-NAME.
+If REGISTER-FILE is non-nil and the created file is in org-mode,
+also register the file as an agenda file."
+  (let* ((path (workdir-join-paths basedir name)))
+    (if (file-exists-p path)
+	(user-error "Directory '%s' already exists" path)
+      (make-directory path)
+      (let ((sheet (concat (file-name-as-directory path) sheet-name)))
+	(with-temp-file sheet) ;; create empty file
+	(workdir-add-file sheet)
+	(when register-file
+	  (with-current-buffer (find-file sheet)
+	    (when (eq major-mode 'org-mode)
+	      (org-agenda-file-to-front))))))))
+    
 ;;;###autoload
 (defun workdir-create (name)
   "Create workdir NAME within `workdir-new-dirs-directory'."
   (interactive "MNew workdir project: ")
+  ;; some chceks:
   (when (or (null name) (string-blank-p name))
     (user-error "No project name. Canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
     (user-error "Name '%s' must not contain a path separator" name))
-  (let* ((path (workdir-convert-name-to-project-path name)))
-    (if (y-or-n-p (format "Create new workdir project '%s'? " path))
-	(if (file-exists-p path)
-	    (user-error "Could not create new project, directory '%s' already exists" path)
-	  (make-directory path)
-	  (let ((sheet (concat (file-name-as-directory path) workdir-default-sheet)))
-	    (with-temp-file sheet) ;; create empty file
-	    (workdir-add-file sheet)
-	    (with-current-buffer (find-file sheet)
-	      (when (eq major-mode 'org-mode)
-		(org-agenda-file-to-front)))))
-      (message "Canceled."))))
+  (if (not (y-or-n-p (format "Create new workdir project '%s'? " name)))
+      (message "Canceled.")
+    (workdir-do-create workdir-new-dirs-directory name workdir-default-sheet t)))
 
 ;; * Unregister Workdir
 
