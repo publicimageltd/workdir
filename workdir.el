@@ -332,61 +332,12 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
 
-;;;###autoload
-(defun workdir-select-or-create-worksheet (worksheet prefix &optional only-select)
-  "Visit or create WORKSHEET. 
-Display worksheet according to PREFIX.
-If PREFIX is nil, switch to worksheet in current window.
-If PREFIX is :full-frame, 4 or (4), switch to worksheet in current window and delete other windows.
-If PREFIX is :other-window, 16 or (16), switch to worksheet in other window.
-If ONLY-SELECT is t, only select existing workdir in WORKSHEET. Do
-nothing if PATH does not exist yet (i.e., do not create a new
-workdir).
-Finally run hook `workdir-visit-worksheet-hook'."
-  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
-		     (car current-prefix-arg)))
-  (push-mark nil t)
-  (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
-	   (not only-select))
-      (workdir-create worksheet)
-    ;;
-    (let* ((visit-mode    (let* ((_prefix (if (listp prefix) (car prefix) prefix)))
-			    (cond
-			     ((eq _prefix 4)  :full-frame)
-			     ((eq _prefix 16) :other-window)
-			     (t               _prefix))))
-	   (target-buffer (or
-			   (find-buffer-visiting worksheet)
-			   ;; one of the rare occasions where find-file-noselect seems fully appropriate
-			   (find-file-noselect worksheet))))
-      (cond
-       ((eq visit-mode :full-frame)
-	(progn
-	  (switch-to-buffer target-buffer)
-	  (delete-other-windows)))
-       ((eq visit-mode :other-window)
-	(switch-to-buffer-other-window target-buffer))
-       (t              (switch-to-buffer target-buffer))))
-    
-    ;; Worksheet is found (or created). Now run some hooks.
-    (run-hooks 'workdir-visit-worksheet-hook)
-    (setq-local workdir-actively-chosen-buffer t)
-    (run-hooks 'workdir-post-selection-hook)))
-
-;; * Refactored version of workdir create / visit
-
-
-(defun workdir-visit-or-create-worksheet (worksheet)
-  "Visit WORKSHEET in the selected window or create it.
-If WORKSHEET does not point to an existing file, try to create a
-new workdir with that name."
-  (if (file-readable-p worksheet)
-      (workdir-visit-worksheet worksheet)
-    (workdir-create worksheet)))
+;; * create / visit workdir 
 
 ;;;###autoload
 (defun workdir-visit-worksheet (worksheet)
   "Visit WORKSHEET in the selected window."
+  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Visit work dir: ")))
   (push-mark nil t)
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
 			    (find-file-noselect worksheet))))
@@ -437,6 +388,17 @@ also register the file as an agenda file."
   (if (not (y-or-n-p (format "Create new workdir project '%s'? " name)))
       (message "Canceled.")
     (workdir-do-create workdir-new-dirs-directory name workdir-default-sheet t)))
+
+;;;###autoload
+(defun workdir-visit-or-create-worksheet (worksheet)
+  "Visit WORKSHEET in the selected window or create it.
+WORKSHEET must be either a path to an existing file or a string
+representing a new workdir to be created. If WORKSHEET does not
+point to an existing file, create a new workdir with that name."
+  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)))
+  (if (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
+      (workdir-create worksheet)
+    (workdir-visit-worksheet worksheet)))
 
 ;; * Unregister Workdir
 
