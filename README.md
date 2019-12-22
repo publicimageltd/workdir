@@ -40,7 +40,7 @@ your first visit of that work sheet.
  * Populate the data base automatically by finding all work sheets
    within a given directory (no interactive function, only via elisp).
 
-## Requirements
+## Dependencies
 
 Workdir depends on the following packages:
 
@@ -49,7 +49,12 @@ Workdir depends on the following packages:
 
 You can find `reader-db` in [my repository](https://github.com/publicimageltd/reader-db "Link to repository 'reader-db'").
 
-## Minimal Installation 
+# Setup
+
+## Minimal setup
+
+Minimally, you have to set the variables `workdir-archive-directory`
+and `workdir-new-dirs-directory`.  I.e.:
 
 ``` emacs-lisp
 (use-package workdir
@@ -84,7 +89,7 @@ If called with prefix, do not set any initial input."
 ;; The hydra:
   (defhydra workdir-hydra (:color blue :hint none)
     "
-[_s_]elect or create workdir                   [_i_]buffer                     
+[_v_]isit or create workdir                    [_i_]buffer                     
 [_+_] add current file as worksheet            [_f_]ind file in workdir        
 [_u_]nregister current file                    [_r_]oot file
                                              [_^_] dired root directory
@@ -92,7 +97,7 @@ If called with prefix, do not set any initial input."
 [_d_]elete workdir                             [_k_] save workdir files and kill its buffers
 [_a_]rchive workdir
 "
-    ("s" workdir-select-or-create-worksheet )
+    ("v" workdir-visit-or-create-worksheet )
     ("i" workdir-ibuffer )
     ("a" workdir-archive )
     ("f" workdir-counsel-find-project-file )
@@ -118,25 +123,26 @@ Alternatively, use the following minimal configuration:
 		("C-x p 0" workdir-save-and-kill-buffers)))
 ```
 
-## Customization
+# Customization
 
 You can customize the following variables:
 
- * `workdir-database-name` -- File name for the data base. Will be
-   located in the user directory (i.e. `.emacs.d`)
-   
- * `workdir-default-sheet` -- Name used when creating new work sheets.
-   Currently defaults to `konzeptblatt.org`. This is german and means
-   'a sheet of paper for conceptual stuff'.
-   
- * `workdir-archive-directory` -- Default directory for archiving
-   workdirs.
-   
- * `workdir-new-dirs-directory` -- Default directory when creating new
-   work dirs.
+<dl>
+<dt>workdir-database-name</dt>
+<dd>File name for the data base. Will be
+located in the user directory (i.e. `.emacs.d`)</dd>
+<dt>workdir-default-sheet</dt>
+<dd>Name used when creating new work sheets.
+Currently defaults to `konzeptblatt.org`. This is german and means
+	'a sheet of paper for conceptual stuff'.</dd>
+<dt>workdir-archive-directory</dt>
+<dd> Default directory for archiving  workdirs.</dd>
+<dt> workdir-new-dirs-directory</dt>
+   <dd> Default directory when creating new</dd>
+	   <dt>workdir-visit-worksheet-hook</dt>
+	<dd>Hook with a list of functions
+which are called when visiting a work sheet the first time. The
+functions are called with the work sheet file as the current buffer
+and should not accept any argument.</dd>
+</dl>
 
- * `workdir-visit-worksheet-hook` -- Hook with a list of functions
-   which are called when visiting a work sheet the first time. The
-   functions are called with the work sheet file as the current buffer
-   and should not accept any argument.
-   
