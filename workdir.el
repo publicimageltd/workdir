@@ -35,11 +35,6 @@
 ;;     - On visiting, org mode work sheets are called with a sparse todo tree
 ;;  - API to automatically 'populate' the data base
 
-;; TODO
-;;  - Die interaktiven Funktionen müssen besser von den GRundfunktionen getrennt werden
-;;    (also v.a. bei "create" und "visit"), um besseres Interface zu ermöglichen....
-;;    traue ich mich aber nicht ran, zu müde heute
-
 ;;; Code:
 ;; --------------------------------------------------------------------------------
 ;; * Dependencies
@@ -89,13 +84,13 @@ If set and t, buffer had been actively selected at least once.")
   :type 'string)
 
 (defcustom workdir-archive-directory
-  "~/Dokumente/Archiv"
+  nil
   "Default move target for archiving work dirs."
   :group 'workdir
   :type 'directory)
 
 (defcustom workdir-new-dirs-directory
-  "~/Dokumente/projekte"
+  nil
   "Directory in which new work dirs are created."
   :group 'workdir
   :type 'directory)
@@ -396,6 +391,8 @@ also register the file as an agenda file."
   "Create workdir NAME within `workdir-new-dirs-directory'."
   (interactive "MNew workdir project: ")
   ;; some chceks:
+  (unless workdir-new-dirs-directory
+    (user-error "Variable `workdir-new-dirs-directory' has to be set."))
   (when (or (null name) (string-blank-p name))
     (user-error "No project name. Canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
@@ -411,6 +408,8 @@ WORKSHEET must be either a path to an existing file or a string
 representing a new workdir to be created. If WORKSHEET does not
 point to an existing file, create a new workdir with that name."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)))
+  (unless workdir-new-dirs-directory
+    (user-error "Variable `workdir-new-dirs-directory' has to be set."))
   (if (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
       (workdir-create worksheet)
     (workdir-visit-worksheet worksheet)))

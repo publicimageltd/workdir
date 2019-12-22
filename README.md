@@ -51,6 +51,15 @@ You can find `reader-db` in [my repository](https://github.com/publicimageltd/re
 
 ## Minimal Installation 
 
+``` emacs-lisp
+(use-package workdir
+   :config
+   (setq workdir-archive-directory  "~/documents/archive")
+   (setq workdir-new-dirs-directory "~/documente/projects"))
+```
+
+## Keybindings
+
 Workdir does not define any key binding by itself. I myself use a
 hydra. The hydra uses another function, which is not (yet) part of the
 package, `workdir-counsel-find-project-file`. This function offers you
