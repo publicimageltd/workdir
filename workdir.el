@@ -61,6 +61,14 @@ Path has to end with a trailing slash.")
 (defvar workdir-database-definition '((worksheets))
   "Definition for the reader db data base.")
 
+(defvar-local workdir-actively-chosen-buffer nil
+  "Buffer local marker set by `workdir-select-or-create-worksheet'.
+Useful for hooks to determine \"once only actions\".
+If nil, buffer might have been visited with internal functions
+like `find-file', but not with the official workdir selection
+interface `workdir-select-or-create-worksheet'.
+If set and t, buffer had been actively selected at least once.")
+
 ;; --------------------------------------------------------------------------------
 ;; * Customizable Variables
 
@@ -325,14 +333,6 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
       path)))
 
 ;; * Visit worksheet
-
-(defvar-local workdir-actively-chosen-buffer nil
-  "Buffer local marker set by `workdir-select-or-create-worksheet'.
-Useful for hooks to determine \"once only actions\".
-If nil, buffer might have been visited with internal functions
-like `find-file', but not with the official workdir selection
-interface `workdir-select-or-create-worksheet'.
-If set and t, buffer had been actively selected at least once.")
 
 (defun workdir-visit--todo-tree ()
   "Show org mode todo tree."
