@@ -148,9 +148,18 @@ buffer current."
   "Create a completely new data base file."
   (reader-db-init (workdir-worksheet-database-file) workdir-database-definition))
 
-(defun workdir-read-worksheets ()
-  "Return the work sheets stored in the data base, excluding any non-existent files."
-  (seq-filter #'file-exists-p (reader-db-get (workdir-worksheet-database-file) 'worksheets)))
+(defun workdir-read-worksheets (&optional prompt-for-basedir)
+  "Return the work sheets stored in the data base, excluding any non-existent files.
+Optionally prompt for a basedir and return a list of workdirs
+creted on the fly."
+  (if prompt-for-basedir
+      (let* ((basedir   (completing-read " Select basedir:"
+				       (list workdir-new-dirs-directory workdir-archive-directory)
+				       nil t))
+	     (file-list	(workdir-fast-find-sheets basedir)))
+	(or file-list
+	    (user-error (format "Directory '%s' contains no workdirs." basedir))))
+    (seq-filter #'file-exists-p (reader-db-get (workdir-worksheet-database-file) 'worksheets))))
 
 (defun workdir-write-worksheets (worksheets)
   "Write WORKSHEETS to the workdir data base."
@@ -170,20 +179,26 @@ Remove duplicate files, normalize the path names, allow only readable files."
 
 ;; Populate the data base programmatically.
 
-(defun workdir-find-sheets-in-dir (dir-name)
-  "Return the name of the worksheet in DIR, if it exists."
-  (let* ((file
-	  (concat (file-name-as-directory dir-name)
-		  workdir-default-sheet)))
+(defun workdir-find-sheet-in-dir (dir-name)
+  "Return the full path of the worksheet in DIR, if it exists."
+  (let* ((file (concat (file-name-as-directory dir-name) workdir-default-sheet)))
     (when (file-readable-p file)
       file)))
 
 (defun workdir-find-sheets-recursively (dir-name)
   "Traverse DIR recursively and return a list all files matching `workdir-default-sheet'."
-  (directory-files-recursively
-   dir-name
-   (concat (regexp-quote workdir-default-sheet) "$")))
+  (with-temp-message (format "Collecting workdirs in %s" dir-name)
+    (directory-files-recursively  dir-name
+				  (concat (regexp-quote workdir-default-sheet) "$"))))
 
+(defun workdir-fast-find-sheets (basedir)
+  "Return a list of all WORKDIRS within BASEDIR (no recursion)."
+  (let* ((dirs (directory-files basedir t nil t)))
+    (seq-filter #'identity
+		(seq-map #'workdir-find-sheet-in-dir dirs))))
+ 
+;; (workdir-find-sheets-recursively workdir-archive-directory)
+;; (workdir-fast-find-sheets workdir-archive-directory)
 (defun workdir-populate-data-base (dir-name)
   "Recurse DIR and store found work sheets in the database."
   (interactive (list workdir-new-dirs-directory))
@@ -318,7 +333,7 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 	key
       path)))
 
-;; * Visit worksheet
+;; * Add-ons when visiting a worksheet:
 
 (defun workdir-visit--todo-tree ()
   "Show org mode todo tree."
@@ -332,12 +347,14 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
 
-;; * create / visit workdir 
+;; * Create / visit workdir 
 
 ;;;###autoload
-(defun workdir-visit-worksheet (worksheet)
-  "Visit WORKSHEET in the selected window."
-  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Visit work dir: ")))
+(defun workdir-visit-worksheet (worksheet &optional prompt-for-basedir)
+  "Visit WORKSHEET in the selected window.
+With prefix, prompt for directory containing workdirs."
+  (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets current-prefix-arg) "Visit work dir: ")
+		     current-prefix-arg))
   (push-mark nil t)
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
 			    (find-file-noselect worksheet))))
@@ -346,8 +363,6 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
     (run-hooks 'workdir-visit-worksheet-hook)
     (setq-local workdir-actively-chosen-buffer t)
     (run-hooks 'workdir-post-selection-hook)))
-
-;; * Create Workdir
 
 (defun workdir-sanitize-name (name)	
   "Remove whitespaces in NAME."
