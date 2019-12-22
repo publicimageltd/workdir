@@ -100,11 +100,6 @@ If set and t, buffer had been actively selected at least once.")
   :group 'workdir
   :type 'directory)
 
-(defcustom workdir-pre-selection-hook nil
-  "Hook run before switching to a workdir."
-  :group 'workdir
-  :type 'hook)
-
 (defcustom workdir-post-selection-hook nil
   "Hook run after switching to a workdir."
   :group 'workdir
@@ -351,7 +346,6 @@ Finally run hook `workdir-visit-worksheet-hook'."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)
 		     (car current-prefix-arg)))
   (push-mark nil t)
-  (run-hooks 'workdir-pre-selection-hook)
   (if (and (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
 	   (not only-select))
       (workdir-create worksheet)
@@ -390,8 +384,10 @@ new workdir with that name."
       (workdir-visit-worksheet worksheet)
     (workdir-create worksheet)))
 
+;;;###autoload
 (defun workdir-visit-worksheet (worksheet)
-  "Visit WORKSHEET in the selected window."      
+  "Visit WORKSHEET in the selected window."
+  (push-mark nil t)
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
 			    (find-file-noselect worksheet))))
     ;; Maybe allow to pass an fn for more display flexibility?
