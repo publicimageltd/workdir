@@ -270,8 +270,7 @@ FILE should point to a file, not to a directory."
   (seq-sort #'file-newer-than-file-p worksheets))
 
 (defvar workdir--selector-format
-  '(;;("%15s" workdir--selector-title-info)
-    ("%9s" workdir--selector-agenda-info)
+  '(("%9s" workdir--selector-agenda-info)
     ("%1s" workdir--selector-visited-info)
     ("%1s" workdir--selector-modified-info)
     ("%s"  workdir-abbreviate-path))
@@ -280,14 +279,6 @@ This has to be a list defining the format string and a function.
 The funcion takes the path as an argument and returns the data
 appropriate for the format string.
 The results will be joined with a blank space.")
-
-(defun workdir--selector-title-info (worksheet)
-  (let* ((rg "rg '^#\\+TITLE' -m 1"))
-    (concat 
-     (when-let ((title (shell-command-to-string (concat rg " " (shell-quote-argument worksheet)))))
-       (unless (string-empty-p title)
-	 (string-trim
-	  (substring (string-trim title) 8)))))))
 
 (defun workdir--selector-agenda-info (worksheet)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
