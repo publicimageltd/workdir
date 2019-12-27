@@ -42,7 +42,8 @@ your first visit of that work sheet.
 
 ## Dependencies
 
-Workdir depends on the following packages:
+Workdir requires emacs >= 26.1. The package itself depends on the
+following packages:
 
 * `reader-db`
  * `seq`
@@ -146,3 +147,9 @@ functions are called with the work sheet file as the current buffer
 and should not accept any argument.</dd>
 </dl>
 
+# Changelog
+
+## 0.2
+
+First release you should be able to depend upon. Works like a charm
+for quite some time by now.
