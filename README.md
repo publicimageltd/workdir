@@ -59,8 +59,8 @@ and `workdir-new-dirs-directory`.  I.e.:
 ``` emacs-lisp
 (use-package workdir
    :config
-   (setq workdir-archive-directory  "~/documents/archive")
-   (setq workdir-new-dirs-directory "~/documente/projects"))
+   (setq workdir-archive-directory  "~/Documents/archive")
+   (setq workdir-new-dirs-directory "~/Documents/projects"))
 ```
 
 ## Keybindings
@@ -115,7 +115,7 @@ Alternatively, use the following minimal configuration:
 (use-package workdir
 	:bind
 	(:map global-map
-		("C-x p s" workdir-select-or-create-worksheet)
+		("C-x p s" workdir-visit-or-create-worksheet)
 		("C-x p i" workdir-ibuffer)
 		("C-x p d" workdir-delete)
 		("C-x p a" workdir-archive)
