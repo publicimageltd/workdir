@@ -2,10 +2,11 @@
 
 ;; Copyright (C) 2018-2019
 
-;; Author:  <joerg@joergvolbers.de>
+;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
-;; Version: 0.1
-;; Package-Requires: (seq reader-db)
+;; Version: 0.2
+;; Package-Requires: ((seq "2.20") (reader-db "0.1") (emacs "26.1"))
+;; URL: https://github.com/publicimageltd/workdir
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,7 +34,7 @@
 ;;  - Create, move and delete workdirs interactively
 ;;  - Some special handling if work sheets are in org mode
 ;;     - On visiting, org mode work sheets are called with a sparse todo tree
-;;  - API to automatically 'populate' the data base
+;;  - Some API to automatically 'populate' the data base
 
 ;;; Code:
 ;; --------------------------------------------------------------------------------
@@ -75,7 +76,8 @@ selected at least once.")
 
 (defgroup workdir
   nil
-  "Lightweight project management.")
+  "Lightweight project management."
+  :group files)
 
 (defcustom workdir-database-name
   "worksheets"
