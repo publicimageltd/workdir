@@ -57,12 +57,18 @@ Path has to end with a trailing slash.")
   "Definition for the reader db data base.")
 
 (defvar-local workdir-actively-chosen-buffer nil
-  "Buffer local marker set by `workdir-select-or-create-worksheet'.
-Useful for hooks to determine \"once only actions\".
-If nil, buffer might have been visited with internal functions
-like `find-file', but not with the official workdir selection
-interface `workdir-select-or-create-worksheet'.
-If set and t, buffer had been actively selected at least once.")
+  "Buffer local marker set by `workdir-visit-or-create-worksheet'.
+
+Useful for hooks to determine \"once only actions\":
+
+If the variable is undefined or its value nil, the buffer might
+have been visited by internal functions like `find-file', but not
+via the official workdir selection interfaces
+`workdir-visit-or-create-worksheet' or `workdir-visit-worksheet',
+respectively.
+
+If the variable is set and t, the buffer had been actively
+selected at least once.")
 
 ;; --------------------------------------------------------------------------------
 ;; * Customizable Variables
@@ -144,9 +150,14 @@ buffer current."
   (reader-db-init (workdir-worksheet-database-file) workdir-database-definition))
 
 (defun workdir-read-worksheets (&optional prompt-for-basedir)
-  "Return the work sheets stored in the data base, excluding any non-existent files.
-Optionally prompt for a basedir and return a list of workdirs
-creted on the fly."
+  "Return the stored work sheets.
+Returns a list file paths. If the work sheet does not
+exist (anymore), silently remove its path from the result list.
+
+Option PROMPT-FOR-BASEDIR lets the user prompt for a basedir. In
+this case, do not retrieve the file list from the data base.
+Instead, scan the base dir given by the user for possible work
+dirs and return that list."
   (if prompt-for-basedir
       (let* ((basedir   (completing-read " Select basedir:"
 				       (list workdir-new-dirs-directory workdir-archive-directory)
@@ -175,13 +186,17 @@ Remove duplicate files, normalize the path names, allow only readable files."
 ;; Populate the data base programmatically.
 
 (defun workdir-find-sheet-in-dir (dir-name)
-  "Return the full path of the worksheet in DIR, if it exists."
+  "Return the full path of the worksheet located in DIR-NAME.
+If there is no readable work sheet in that directory, return
+nil."
   (let* ((file (concat (file-name-as-directory dir-name) workdir-default-sheet)))
     (when (file-readable-p file)
       file)))
 
 (defun workdir-find-sheets-recursively (dir-name)
-  "Traverse DIR recursively and return a list all files matching `workdir-default-sheet'."
+  "Traverse DIR-NAME recursively and return a list work sheets.
+A work sheet is defined as a file name matching
+`workdir-default-sheet'."
   (with-temp-message (format "Collecting workdirs in %s" dir-name)
     (directory-files-recursively  dir-name
 				  (concat (regexp-quote workdir-default-sheet) "$"))))
@@ -195,7 +210,7 @@ Remove duplicate files, normalize the path names, allow only readable files."
 ;; (workdir-find-sheets-recursively workdir-archive-directory)
 ;; (workdir-fast-find-sheets workdir-archive-directory)
 (defun workdir-populate-data-base (dir-name)
-  "Recurse DIR and store found work sheets in the database."
+  "Recurse DIR-NAME and store found work sheets in the database."
   (interactive (list workdir-new-dirs-directory))
   (message "%s" dir-name)
   (workdir-write-worksheets (workdir-find-sheets-recursively dir-name)))
@@ -215,7 +230,7 @@ Remove duplicate files, normalize the path names, allow only readable files."
   (interactive)
   (when-let ((file (buffer-file-name)))
     (if (seq-contains (workdir-read-worksheets) (expand-file-name file) #'string=)
-	(user-error "Current buffer's file already registered as work sheet.")
+	(user-error "Current buffer's file already registered as work sheet")
       (workdir-add-file file)
       (message "Registered current buffer's file as work sheet"
 	       (if (org-agenda-file-p)
@@ -238,7 +253,7 @@ Remove duplicate files, normalize the path names, allow only readable files."
     (message "Removed visiting file from work sheet data base.")))
 
 (defun workdir-remove-by-base-dir (dir-name)
-  "Remove all references to files, directories and subdirectories matching DIR in the work sheet data base."
+  "Remove all paths matching DIR-NAME from the data base."
   (let ((file-name (expand-file-name (file-name-as-directory dir-name))))
     (workdir-write-worksheets
      (seq-remove
@@ -342,12 +357,13 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (beginning-of-buffer)))
 
-;; * Create / visit workdir 
+;; * Create / visit workdir
 
 ;;;###autoload
 (defun workdir-visit-worksheet (worksheet &optional prompt-for-basedir)
   "Visit WORKSHEET in the selected window.
-With prefix, prompt for directory containing workdirs."
+With prefix PROMPT-FOR-BASEDIR set, prompt the user for a
+directory and return all workdirs in that directory."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets current-prefix-arg) "Visit work dir: ")
 		     current-prefix-arg))
   (push-mark nil t)
@@ -359,7 +375,7 @@ With prefix, prompt for directory containing workdirs."
     (setq-local workdir-actively-chosen-buffer t)
     (run-hooks 'workdir-post-selection-hook)))
 
-(defun workdir-sanitize-name (name)	
+(defun workdir-sanitize-name (name)
   "Remove whitespaces in NAME."
   (thread-last
       name
@@ -372,7 +388,7 @@ With prefix, prompt for directory containing workdirs."
 
 (defun workdir-do-create (basedir name sheet-name &optional register-file)
   "Within BASEDIR, create new workdir NAME and a worksheet file SHEET-NAME.
-If REGISTER-FILE is non-nil and the created file is in org-mode,
+If REGISTER-FILE is non-nil and the created file is in `org-mode`,
 also register the file as an agenda file."
   (let* ((path (workdir-join-paths basedir name)))
     (if (file-exists-p path)
@@ -392,7 +408,7 @@ also register the file as an agenda file."
   (interactive "MNew workdir project: ")
   ;; some chceks:
   (unless workdir-new-dirs-directory
-    (user-error "Variable `workdir-new-dirs-directory' has to be set."))
+    (user-error "Variable `workdir-new-dirs-directory' has to be set"))
   (when (or (null name) (string-blank-p name))
     (user-error "No project name. Canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
@@ -409,7 +425,7 @@ representing a new workdir to be created. If WORKSHEET does not
 point to an existing file, create a new workdir with that name."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets) "Select or create a work dir: " t)))
   (unless workdir-new-dirs-directory
-    (user-error "Variable `workdir-new-dirs-directory' has to be set."))
+    (user-error "Variable `workdir-new-dirs-directory' has to be set"))
   (if (not (seq-contains (workdir-read-worksheets) worksheet #'string=))
       (workdir-create worksheet)
     (workdir-visit-worksheet worksheet)))
@@ -499,8 +515,10 @@ Return NIL if no associated worksheet can be found."
 ;; * Killing or Ibuffer all Workdir Buffers
 
 (defun workdir-buffer-belongs-to-worksheet-p (worksheet-or-workdir buffer)
-  "Check whether BUFFER refers to a file belonging to the workdir defined by WORKSHEET-OR-WORKDIR.
-Argument can be either a full file path or a directory."
+  "Check if BUFFER belongs to WORKSHEET-OR-WORKDIR.
+Argument can be either a full file path or a directory. If
+WORKSHEET-OR-WORKDIR is a file path, check the buffer file name
+against its parent directory."
   (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
 	      (file     (workdir-guess-file-name buffer))
 	      (exp-dir  (expand-file-name base-dir))
@@ -516,7 +534,7 @@ directory path."
 
 ;;;###autoload
 (defun workdir-save-and-kill-buffers (worksheet-or-workdir)
-  "Save and kill all buffers defined by WORKSHEET."
+  "Save and kill all buffers defined by WORKSHEET-OR-WORKDIR."
   (interactive (list (workdir-guess-or-prompt-visiting-workdir " Save and delete all buffers from workdir: ")))
   (when-let ((buffers (workdir-buffers worksheet-or-workdir)))
     (when (y-or-n-p (format "Save and kill all %d buffers belonging to '%s'? "
@@ -549,9 +567,9 @@ Returns t if all buffers have been successfully killed."
 
 ;;;###autoload
 (defun workdir-archive (worksheet target)
-  "Archive the workdir defined by WORKSHEET by moving the whole directory to TARGET.
-Kill all open buffers before archiving.
-Remove the file from the work sheet data base."
+  "Move the whole directory of WORKSHEET to TARGET.
+Kill all open buffers before archiving. Also remove the file from the
+work sheet data base."
   (interactive (let* ((interactive-worksheet (workdir--prompt-for-worksheet (workdir-read-worksheets) " Select workdir to move: "))
 		      (interactive-target    (read-directory-name
 					      (format "Move '%s' to: " (workdir-abbreviate-path interactive-worksheet))
@@ -569,17 +587,15 @@ Remove the file from the work sheet data base."
 
 
 ;;;###autoload
-(defun workdir-go-to-root (&optional prefix)
+(defun workdir-go-to-root ()
   "Go to the root file of the current workdir.
 Set the mark before switching to the file."
-  (interactive (list (car current-prefix-arg)))
-  (when-let ((target-dir (workdir-guess-workdir)))
+  (if-let ((target-dir (workdir-guess-workdir)))
     (if-let ((target-sheet (workdir-get-worksheet target-dir)))
-	(workdir-select-or-create-worksheet target-sheet prefix)
-      (message "Could not find root file")
-      (push-mark nil t)
-      (dired target-dir) ;; open in dired instead
-      (user-error "Could not identify workdir project associated with the current buffer."))))
+	(workdir-visit-worksheet target-sheet)
+      (message "Could not find work sheet file, opening work directory instead.")
+      (dired target-dir))
+    (user-error "No workdir project associated with current buffer")))
 
 ;;;###autoload
 (defun workdir-dired-root ()
