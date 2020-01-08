@@ -592,6 +592,7 @@ work sheet data base."
 (defun workdir-go-to-root ()
   "Go to the root file of the current workdir.
 Set the mark before switching to the file."
+  (interactive)
   (if-let ((target-dir (workdir-guess-workdir)))
     (if-let ((target-sheet (workdir-get-worksheet target-dir)))
 	(workdir-visit-worksheet target-sheet)
