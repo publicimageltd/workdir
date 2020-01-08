@@ -77,7 +77,7 @@ selected at least once.")
 (defgroup workdir
   nil
   "Lightweight project management."
-  :group files)
+  :group 'files)
 
 (defcustom workdir-database-name
   "worksheets"
