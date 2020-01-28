@@ -1,6 +1,6 @@
 ;;; workdir.el --- Use work sheets within dirs to organize your projects  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2019
+;; Copyright (C) 2018-2020
 
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
