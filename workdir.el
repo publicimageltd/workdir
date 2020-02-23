@@ -103,6 +103,12 @@ selected at least once.")
   :group 'workdir
   :type 'directory)
 
+(defcustom workdir-additional-dirs
+  nil
+  "List of directories to select from when selecting a workdir."
+  :group 'workdir
+  :type 'list)
+
 (defcustom workdir-post-selection-hook nil
   "Hook run after switching to a workdir."
   :group 'workdir
@@ -162,7 +168,8 @@ Instead, scan the base dir given by the user for possible work
 dirs and return that list."
   (if prompt-for-basedir
       (let* ((basedir   (completing-read " Select basedir:"
-				       (list workdir-new-dirs-directory workdir-archive-directory)
+					 (seq-concatenate 'list (list workdir-new-dirs-directory workdir-archive-directory)
+							  workdir-additional-dirs)
 				       nil t))
 	     (file-list	(workdir-fast-find-sheets basedir)))
 	(or file-list
