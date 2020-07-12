@@ -364,7 +364,7 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 (defun workdir-visit--bob ()
   "Move point to beginning of buffer."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
-    (beginning-of-buffer)))
+    (call-interactively #'beginning-of-buffer)))
 
 ;; * Create / visit workdir
 
