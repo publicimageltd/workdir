@@ -5,7 +5,7 @@
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
 ;; Version: 0.2
-;; Package-Requires: ((seq "2.20") (reader-db "0.1") (emacs "26.1"))
+;; Package-Requires: ((seq "2.20") (reader-db "0.1") (emacs "26.1") (hydra))
 ;; URL: https://github.com/publicimageltd/workdir
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -41,6 +41,7 @@
 ;; * Dependencies
 (require 'seq)
 (require 'reader-db)
+(require 'hydra)
 
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
