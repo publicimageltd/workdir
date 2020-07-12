@@ -612,5 +612,45 @@ Set the mark before switching to the file."
   (interactive)
   (dired (workdir-guess-workdir)))
 
+;; -----------------------------------------------------------
+;; * Provide Hydra
+
+(defcustom workdir-counsel-find-file-initial-input "\\(org\\|pdf\\)$ "
+  "Initial input when using counsel to jump to a project file."
+  :group 'workdir
+  :type 'regexp)
+
+(defun workdir-counsel-find-project-file (&optional no-initial-input)
+  "Find file within project. Initial input defaults to
+`workdir-counsel-find-file-initial-input'. If called with prefix,
+do not set any initial input."
+  (interactive "P")
+  (unless (require 'counsel nil t)
+    (user-error "workdir-find-project-file: library `counsel' required"))
+  (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
+		     (workdir-guess-workdir)))
+
+  (defhydra workdir-hydra (:color blue :hint none)
+    "
+[_s_]elect or create workdir                   [_i_]buffer
+[_+_] add current file as worksheet            [_f_]ind file in workdir
+[_u_]nregister current file                    [_r_]oot file
+                                             [_\\^_] dired root directory
+
+[_d_]elete workdir                             [_k_] save workdir files and kill its buffers
+[_a_]rchive workdir                            [_v_]isit workdir
+"
+    ("s" workdir-visit-or-create-worksheet)
+    ("v" workdir-visit-worksheet)
+    ("i" workdir-ibuffer )
+    ("a" workdir-archive )
+    ("f" workdir-counsel-find-project-file )
+    ("d" workdir-delete)
+    ("u" workdir-unregister)
+    ("r" workdir-go-to-root)
+    ("^" workdir-dired-root)
+    ("k" workdir-save-and-kill-buffers )
+    ("+" workdir-add))
+
 (provide 'workdir)
 ;;; workdir.el ends here
