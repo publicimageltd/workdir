@@ -242,16 +242,16 @@ A work sheet is defined as a file name matching
     (if (seq-contains (workdir-read-worksheets) (expand-file-name file) #'string=)
 	(user-error "Current buffer's file already registered as work sheet")
       (workdir-add-file file)
-      (message "Registered current buffer's file as work sheet"
-	       (if (org-agenda-file-p)
-		   "."
-		 (org-agenda-file-to-front)
-		 " and added it to the agenda file list.")))))
+      (message (concat "Registered current buffer's file as work sheet"
+		       (if (org-agenda-file-p)
+			   "."
+			 (org-agenda-file-to-front)
+			 " and added it to the agenda file list."))))))
     
 (defun workdir-remove-file (file)
   "Remove FILE from the work sheet data base. Exact match required."
-  (let ((_file (expand-file-name file)))
-    (workdir-write-worksheets (seq-remove (lambda (f) (string= f _file))
+  (let ((the-file (expand-file-name file)))
+    (workdir-write-worksheets (seq-remove (lambda (f) (string= f the-file))
 					  (workdir-read-worksheets)))))
 
 ;;;###autoload
@@ -376,6 +376,7 @@ With prefix PROMPT-FOR-BASEDIR set, prompt the user for a
 directory and return all workdirs in that directory."
   (interactive (list (workdir--prompt-for-worksheet (workdir-read-worksheets current-prefix-arg) "Visit work dir: ")
 		     current-prefix-arg))
+  (ignore prompt-for-basedir) ;; silence byte compiler
   (push-mark nil t)
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
 			    (find-file-noselect worksheet))))
