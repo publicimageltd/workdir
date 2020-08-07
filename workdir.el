@@ -40,7 +40,6 @@
 ;; --------------------------------------------------------------------------------
 ;; * Dependencies
 (require 'seq)
-(require 'reader-db)
 (require 'hydra)
 
 ;; --------------------------------------------------------------------------------
@@ -54,9 +53,6 @@
   "Regexp matching the parent directory of a directory path.
 
 Path has to end with a trailing slash.")
-
-(defvar workdir-database-definition '((worksheets))
-  "Definition for the reader db data base.")
 
 (defvar-local workdir-actively-chosen-buffer nil
   "Buffer local marker set by `workdir-visit-or-create-worksheet'.
@@ -80,23 +76,29 @@ selected at least once.")
   "Lightweight project management."
   :group 'files)
 
-(defcustom workdir-database-name
-  "worksheets"
-  "Data base file name. File will be located in the user directory."
-  :group 'workdir
-  :type 'string)
-
 (defcustom workdir-default-sheet
   "konzeptblatt.org"
   "Default name for automatically created work sheets."
   :group 'workdir
   :type 'string)
 
+(defcustom workdir-directories '("~/Dokumente/projekte"
+				 "~/webseite/minimal-mistakes"
+				 "~/.emacs.d/konzeptblatt.org")
+  "List of directories which might contain workdirs.
+Each element is either a directory path or the direct path to a
+worksheet. Note that a direct path to a worksheet is compared
+against `workdir-default-sheet', so do not forget to update this
+variable if you choose another default directory name."
+  :group 'workdir
+  :type 'list)
+
 (defcustom workdir-archive-directory
   nil
   "Default move target for archiving work dirs."
   :group 'workdir
-  :type 'directory)
+  ;; FIXME does not work as expected
+  :type '(repeat (choice file directory)))
 
 (defcustom workdir-new-dirs-directory
   nil
@@ -149,14 +151,6 @@ buffer current."
 
 ;; --------------------------------------------------------------------------------
 ;; * Database
-
-(defun workdir-worksheet-database-file ()
-  "Return the full path to the data base file."
-  (locate-user-emacs-file workdir-database-name))
-
-(defun workdir-new-data-base ()
-  "Create a completely new data base file."
-  (reader-db-init (workdir-worksheet-database-file) workdir-database-definition))
 
 (defun workdir-read-worksheets (&optional prompt-for-basedir)
   "Return the stored work sheets.
@@ -224,6 +218,42 @@ A work sheet is defined as a file name matching
   (interactive (list workdir-new-dirs-directory))
   (message "%s" dir-name)
   (workdir-write-worksheets (workdir-find-sheets-recursively dir-name)))
+
+
+;; -----------------------------------------------------------
+;; Find worksheets in a directory
+
+(defvar worksheet-use-find-binary (not (eq window-system 'w32))
+  "Use `find' to find worksheets if t; else use internal functions.")
+
+(defun workdir-find-sheets-in-dir (dir)
+  "Return all workdirs within DIR (no recursion).
+If DIR is a path to a worksheet, return this file path."
+  (if (string= (file-name-nondirectory dir) workdir-default-sheet)
+      (expand-file-name dir)
+    (if worksheet-use-find-binary
+	;; on linux:
+	(or
+	 (ignore-errors
+	   (process-lines  "find"
+			   (expand-file-name dir)
+			   "-maxdepth" "2"
+			   "-name" (replace-regexp-in-string "\\." "\\\\."
+							     workdir-default-sheet)))
+	 (unless (file-readable-p dir)
+	   (error "%s is not a valid directory" dir)))
+      ;; else if find is not available:
+    (let* ((dirs (directory-files dir t nil t)))
+      (cl-labels ((create-name (s) (concat (file-name-as-directory s)
+					   workdir-default-sheet))
+		  (file-ok (f) (and (not (string-prefix-p "." f))
+				    (file-readable-p f))))
+	(seq-filter #'file-ok (seq-map #'create-name dirs))))))
+
+(defun workdir-find-sheets (dirs)
+  "Return all workdirs within DIRS, a list of directory names."
+  (apply #'append (seq-map #'workdir-find-sheets-in-dir
+			   (if (listp dirs) dirs (list dirs)))))
 
 ;; --------------------------------------------------------------------------------
 ;; * Convenience API to fill the data
