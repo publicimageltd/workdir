@@ -245,7 +245,7 @@ blank space.")
 
 ;; TODO We might speed this up by calling awk on a list of files.
 ;; This would require caching and passing some global variable to
-;; construct the selector. Hm.
+;; construct the selector. Hm. 
 (defun workdir--selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
   (unless (eq window-system 'w32)
@@ -448,13 +448,13 @@ If wanted, do it UNCONDITIONALLY (no questions asked)."
 	 (dir-name   (abbreviate-file-name (file-name-directory worksheet))))
     (if (not (workdir-kill-buffers worksheet unconditionally))
 	(user-error "Could not kill all buffers belonging to the project; canceled")
-      (if (and (not unconditionally)
-	       (y-or-n-p (format "Directory '%s' contains %d files. Delete? " dir-name (length files))))
+      (if (or unconditionally
+	      (y-or-n-p (format "Directory '%s' contains %d files. Delete? " dir-name (length files))))
 	  (progn
-	    (workdir-unregister worksheet))
+	    (workdir-unregister worksheet)
 	    (delete-directory (file-name-directory worksheet) t)
 	    (message "Deleted directory '%s'." dir-name))
-	(message "Canceled."))))
+	(message "Canceled.")))))
 
 
 ;; * Guess Workdir
