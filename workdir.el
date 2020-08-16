@@ -42,7 +42,7 @@
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
 
-(defvar workdir--selection-history nil
+(defvar workdir-selection-history nil
   "List of previously selected workdirs.")
 
 (defvar workdir-parent-dir-regexp
@@ -113,13 +113,13 @@ variable if you choose another default directory name."
   :type 'hook)
 
 (defcustom workdir-visit-worksheet-hook
-  '(workdir-visit--todo-tree  workdir-visit--bob)
+  '(workdir-visit-todo-tree  workdir-visit-bob)
   "Hook called after visiting a worksheet.
 All functions are called in sequential order with the worksheet
 buffer current."
   :group 'workdir
   :type 'hook
-  :options '(workdir-visit--todo-tree  workdir-visit--bob))
+  :options '(workdir-visit-todo-tree  workdir-visit-bob))
 
 ;; --------------------------------------------------------------------------------
 ;; * Helper Functions
@@ -219,11 +219,11 @@ FILE should point to a file, not to a directory."
   "Sort WORKSHEETS by modification date."
   (seq-sort #'file-newer-than-file-p worksheets))
 
-(defvar workdir--selector-format
-  '(("%9s"   workdir--selector-agenda-info)
-    ("%1s"   workdir--selector-visited-info)
-    ("%1s"   workdir--selector-modified-info)
-    ("%-80s"    workdir--selector-get-title)
+(defvar workdir-selector-format
+  '(("%9s"   workdir-selector-agenda-info)
+    ("%1s"   workdir-selector-visited-info)
+    ("%1s"   workdir-selector-modified-info)
+    ("%-80s"    workdir-selector-get-title)
     ("%s"    workdir-abbreviate-path)
     )
   "Format specification for displaying a worksheet as selection candidate.
@@ -233,7 +233,7 @@ appropriate for the format string. The return value nil will be
 converted to an empty string. All results will be joined with a
 blank space.")
 
-(defun workdir--selector-get-title-from-buf (buf)
+(defun workdir-selector-get-title-from-buf (buf)
   "Return document title of BUF, if any."
   (with-current-buffer buf
     (let (org-struct)
@@ -244,7 +244,7 @@ blank space.")
 ;; TODO We might speed this up by calling awk on a list of files.
 ;; This would require caching and passing some global variable to
 ;; construct the selector. Hm. 
-(defun workdir--selector-get-title-from-file (file)
+(defun workdir-selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
   (unless (eq window-system 'w32)
     (let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
@@ -254,21 +254,21 @@ blank space.")
       (when title
 	(string-trim title)))))
 
-(defun workdir--selector-get-title (worksheet)
+(defun workdir-selector-get-title (worksheet)
   (let* ((buf  (get-file-buffer worksheet)))
     (if buf
-	(workdir--selector-get-title-from-buf buf)
-      (workdir--selector-get-title-from-file worksheet))))
+	(workdir-selector-get-title-from-buf buf)
+      (workdir-selector-get-title-from-file worksheet))))
 
-(defun workdir--selector-agenda-info (worksheet)
+(defun workdir-selector-agenda-info (worksheet)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
   (when (seq-contains (org-agenda-files) worksheet) " (Agenda)"))
 
-(defun workdir--selector-visited-info (worksheet)
+(defun workdir-selector-visited-info (worksheet)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
   (when (find-buffer-visiting worksheet) "V"))
 
-(defun workdir--selector-modified-info (worksheet)
+(defun workdir-selector-modified-info (worksheet)
   "Return a string indicating that WORKSHEET is modified and not saved yet."
   (let (buf)
     (when (and (setq buf (find-buffer-visiting worksheet))
@@ -277,7 +277,7 @@ blank space.")
 
 (defun workdir-path-selector (format-list worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
-For the format of FORMAT-LIST, see `workdir--selector-format'."
+For the format of FORMAT-LIST, see `workdir-selector-format'."
   (string-join (seq-map (lambda (spec)
 			  (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet) "")))
 			format-list)
@@ -286,10 +286,10 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 (defun workdir-worksheets-as-alist (worksheets)
   "Return WORKSHEETS as an alist suitable for `completing-read'."
   (with-temp-message "Collecting worksheets..."
-  (seq-group-by (apply-partially #'workdir-path-selector workdir--selector-format)
+  (seq-group-by (apply-partially #'workdir-path-selector workdir-selector-format)
 		worksheets)))
 
-(defun workdir--prompt-for-worksheet (worksheets prompt &optional no-match-required)
+(defun workdir-prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
   (when (featurep 'ivy)
     (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
@@ -297,7 +297,7 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 	 (key    (completing-read prompt alist nil
 				  (not no-match-required)
 				  nil
-				  'workdir--selection-history))
+				  'workdir-selection-history))
 	 (path (cadr (assoc key alist))))
     (if (and (null path) no-match-required)
 	key
@@ -305,14 +305,14 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
 
 ;; * Add-ons when visiting a worksheet:
 
-(defun workdir-visit--todo-tree ()
+(defun workdir-visit-todo-tree ()
   "Show org mode todo tree."
   (when (and (eq major-mode 'org-mode)
 	     (not (local-variable-p 'workdir-actively-chosen-buffer)))
     (save-window-excursion
       (org-show-todo-tree nil))))
 
-(defun workdir-visit--bob ()
+(defun workdir-visit-bob ()
   "Move point to beginning of buffer."
   (when (not (local-variable-p 'workdir-actively-chosen-buffer))
     (call-interactively #'beginning-of-buffer)))
@@ -324,7 +324,7 @@ For the format of FORMAT-LIST, see `workdir--selector-format'."
   "Visit WORKSHEET in the selected window.
 With prefix PROMPT-FOR-BASEDIR set, prompt the user for a
 directory and return all workdirs in that directory."
-  (interactive (list (workdir--prompt-for-worksheet (workdir-get-worksheets current-prefix-arg) "Visit work dir: ")
+  (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets current-prefix-arg) "Visit work dir: ")
 		     current-prefix-arg))
   (ignore prompt-for-basedir) ;; silence byte compiler
   (push-mark nil t)
@@ -380,7 +380,7 @@ The resulting workdir will be added to the agenda file list."
 WORKSHEET must be either a path to an existing file or a string
 representing a new workdir to be created. If WORKSHEET does not
 point to an existing file, create a new workdir with that name."
-  (interactive (list (workdir--prompt-for-worksheet (workdir-get-worksheets) "Select or create a work dir: " t)))
+  (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Select or create a work dir: " t)))
   (unless workdir-new-dirs-directory
     (user-error "Variable `workdir-new-dirs-directory' has to be set"))
   (if (not (seq-contains (workdir-get-worksheets) worksheet #'string=))
@@ -441,7 +441,7 @@ point to an existing file, create a new workdir with that name."
 (defun workdir-delete (worksheet &optional unconditionally)
   "Delete the whole directory containing WORKSHEET.
 If wanted, do it UNCONDITIONALLY (no questions asked)."
-  (interactive (list (workdir--prompt-for-worksheet (workdir-get-worksheets) "Delete workdir: ")))
+  (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Delete workdir: ")))
   (let* ((files      (directory-files (file-name-directory worksheet) nil directory-files-no-dot-files-regexp t))
 	 (dir-name   (abbreviate-file-name (file-name-directory worksheet))))
     (if (not (workdir-kill-buffers worksheet unconditionally))
@@ -488,7 +488,7 @@ Return NIL if no associated worksheet can be found."
 (defun workdir-guess-or-prompt-visiting-workdir (prompt)
   "Guess current buffer's workdir, or PROMPT user to select a currently visited worksheet."
   (or (workdir-guess-workdir)
-      (when-let ((worksheet (workdir--prompt-for-worksheet
+      (when-let ((worksheet (workdir-prompt-for-worksheet
 			     (seq-filter #'find-buffer-visiting (workdir-get-worksheets))
 			     prompt)))
 	(file-name-directory worksheet))))
@@ -497,7 +497,7 @@ Return NIL if no associated worksheet can be found."
   "Guess current worksheet or PROMPT user to select one."
   (if-let ((dir (workdir-guess-workdir)))
       (buffer-file-name)
-    (workdir--prompt-for-worksheet (workdir-get-worksheets) prompt)))
+    (workdir-prompt-for-worksheet (workdir-get-worksheets) prompt)))
 
 ;; * Killing or Ibuffer all Workdir Buffers
 
@@ -556,7 +556,7 @@ Returns t if all buffers have been successfully killed."
 (defun workdir-archive (worksheet target)
   "Move the whole directory of WORKSHEET to TARGET.
 Kill all open buffers before archiving."
-  (interactive (let* ((interactive-worksheet (workdir--prompt-for-worksheet (workdir-get-worksheets) " Select workdir to move: "))
+  (interactive (let* ((interactive-worksheet (workdir-prompt-for-worksheet (workdir-get-worksheets) " Select workdir to move: "))
 		      (interactive-target    (read-directory-name
 					      (format "Move '%s' to: " (workdir-abbreviate-path interactive-worksheet))
 					      (file-name-as-directory workdir-archive-directory) nil t)))
