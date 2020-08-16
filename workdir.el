@@ -79,9 +79,7 @@ selected at least once.")
   :group 'workdir
   :type 'string)
 
-(defcustom workdir-directories '("~/Dokumente/projekte"
-				 "~/webseite/minimal-mistakes"
-				 "~/.emacs.d/konzeptblatt.org")
+(defcustom workdir-directories nil
   "List of directories which might contain workdirs.
 Each element is either a directory path or the direct path to a
 worksheet. Note that a direct path to a worksheet is compared
