@@ -293,6 +293,8 @@ For the format of FORMAT-LIST, see `workdir-selector-format'."
   "PROMPT the user to select one of WORKSHEETS."
   (when (featurep 'ivy)
     (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
+  (unless worksheets
+    (user-error "No worksheets available"))
   (let* ((alist  (workdir-worksheets-as-alist (workdir-sort-by-date worksheets)))
 	 (key    (completing-read prompt alist nil
 				  (not no-match-required)
