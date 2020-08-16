@@ -147,15 +147,18 @@ buffer current."
 ;; -----------------------------------------------------------
 ;; Find worksheets
 
-(defvar worksheet-use-find-binary (not (eq window-system 'w32))
-  "Use `find' to find worksheets if t; else use internal functions.")
+(defvar workdir-use-find-binary (not (eq window-system 'w32))
+  "Use `find' to find worksheets; else use internal functions.")
+
+(defvar workdir-use-awk-binary (not (eq window-system 'w32))
+  "Use `awk' to find worksheet titles; else use internal functions.")
 
 (defun workdir-find-sheets-in-dir (dir)
   "Return all workdirs within DIR (no recursion).
 If DIR is a path to a worksheet, return this file path."
   (if (string= (file-name-nondirectory dir) workdir-default-sheet)
       (list (expand-file-name dir))
-    (if worksheet-use-find-binary
+    (if workdir-use-find-binary
 	;; on linux:
 	(or
 	 (ignore-errors
@@ -205,7 +208,7 @@ If FILE has a trailing slash, it is treated as a directory path."
 	(match-string 1 file-name)
       "")))
 
-(defun workdir-abbreviate-path (file)
+(defun workdir-abbreviate-path (file &optional _)
   "Return an abbreviated version of FILE.
 FILE should point to a file, not to a directory."
   (concat
@@ -219,20 +222,6 @@ FILE should point to a file, not to a directory."
   "Sort WORKSHEETS by modification date."
   (seq-sort #'file-newer-than-file-p worksheets))
 
-(defvar workdir-selector-format
-  '(("%9s"   workdir-selector-agenda-info)
-    ("%1s"   workdir-selector-visited-info)
-    ("%1s"   workdir-selector-modified-info)
-    ("%-80s"    workdir-selector-get-title)
-    ("%s"    workdir-abbreviate-path)
-    )
-  "Format specification for displaying a worksheet as selection candidate.
-This has to be a list defining the format string and a function.
-The function takes the path as an argument and returns the data
-appropriate for the format string. The return value nil will be
-converted to an empty string. All results will be joined with a
-blank space.")
-
 (defun workdir-selector-get-title-from-buf (buf)
   "Return document title of BUF, if any."
   (with-current-buffer buf
@@ -241,53 +230,98 @@ blank space.")
 		 (setq org-struct (plist-get (org-export-get-environment) :title)))
 	(substring-no-properties (car org-struct))))))
 
-;; TODO We might speed this up by calling awk on a list of files.
-;; This would require caching and passing some global variable to
-;; construct the selector. Hm. 
 (defun workdir-selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
-  (unless (eq window-system 'w32)
-    (let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
-	   (title    (ignore-errors
-		       (shell-command-to-string
-			(concat "awk " awk-script " '" file "'")))))
-      (when title
-	(string-trim title)))))
+  (if workdir-use-awk-binary
+      (let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
+	     (title    (ignore-errors
+			 (shell-command-to-string
+			  (concat "awk " awk-script " '" file "'")))))
+	(when title
+	  (string-trim title)))
+    (let* ((loaded (get-file-buffer file))
+	   (buf    (or loaded (find-file-noselect file)))
+	   (title  (workdir-selector-get-title-from-buf buf)))
+      (unless loaded
+	(kill-buffer buf))
+      title)))
 
-(defun workdir-selector-get-title (worksheet)
-  (let* ((buf  (get-file-buffer worksheet)))
-    (if buf
-	(workdir-selector-get-title-from-buf buf)
-      (workdir-selector-get-title-from-file worksheet))))
+(defun workdir-selector-prefetch-titles (files)
+  "Return an alist associating each file in FILES with its title."
+  (let* ((readable-files    (seq-filter #'file-readable-p files))
+	 (nonreadable-files (seq-difference files readable-files #'string=))
+	 (titles            (if workdir-use-awk-binary
+				(let* ((awk-script "BEGIN{NR==1; FS=\":\"} {print $2; nextfile}"))
+				  (ignore-errors (apply #'process-lines "awk" awk-script readable-files)))
+			      (mapcar #'workdir-selector-get-title-from-file readable-files))))
+    (unless titles
+      (setq nonreadable-files files
+	    readable-files nil))
+    ;; and here is the result:
+    (append
+     (seq-mapn #'cons nonreadable-files (mapcar #'ignore nonreadable-files))
+     (seq-mapn #'cons readable-files    (mapcar #'string-trim titles)))))
 
-(defun workdir-selector-agenda-info (worksheet)
+(defvar workdir-selector-format
+  '(("%9s"     workdir-selector-agenda-info)
+    ("%1s"     workdir-selector-visited-info)
+    ("%1s"     workdir-selector-modified-info)
+    ("%-80s"   workdir-selector-get-title)
+    ("%s"      workdir-abbreviate-path))
+  "Format specification for displaying a worksheet as selection candidate.
+This has to be a list defining the format string and a function.
+The function takes the path as an argument and returns the data
+appropriate for the format string. As a second optional argument,
+an alist will be passed to the function. This alist matches each
+file name with the title of the corresponding worksheet.
+
+If the return value of the function is nil, it will be converted
+to an empty string. 
+
+All results will be joined with a blank space.")
+
+
+(defun workdir-selector-get-title (worksheet &optional prefetched-titles)
+  "Return the title of WORKSHEET.
+Use the alist PREFETCHED-TITLES, if passed."
+  (if prefetched-titles
+      (assoc-default worksheet prefetched-titles #'string= "")
+    (let* ((buf  (get-file-buffer worksheet)))
+      (if buf
+	  (workdir-selector-get-title-from-buf buf)
+	(workdir-selector-get-title-from-file worksheet)))))
+
+(defun workdir-selector-agenda-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
   (when (seq-contains (org-agenda-files) worksheet) " (Agenda)"))
 
-(defun workdir-selector-visited-info (worksheet)
+(defun workdir-selector-visited-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
   (when (find-buffer-visiting worksheet) "V"))
 
-(defun workdir-selector-modified-info (worksheet)
+(defun workdir-selector-modified-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is modified and not saved yet."
   (let (buf)
     (when (and (setq buf (find-buffer-visiting worksheet))
 	       (buffer-modified-p buf))
       "*")))
 
-(defun workdir-path-selector (format-list worksheet)
+(defun workdir-selector-build-item (format-list prefetched-titles worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
 For the format of FORMAT-LIST, see `workdir-selector-format'."
   (string-join (seq-map (lambda (spec)
-			  (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet) "")))
+			  (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet prefetched-titles) "")))
 			format-list)
 	       " "))
-  
-(defun workdir-worksheets-as-alist (worksheets)
+
+
+(defun workdir-worksheets-for-completion (worksheets)
   "Return WORKSHEETS as an alist suitable for `completing-read'."
   (with-temp-message "Collecting worksheets..."
-  (seq-group-by (apply-partially #'workdir-path-selector workdir-selector-format)
-		worksheets)))
+    (seq-group-by (apply-partially #'workdir-selector-build-item
+				   workdir-selector-format
+				   (workdir-selector-prefetch-titles worksheets))
+		  worksheets)))
 
 (defun workdir-prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
@@ -295,7 +329,7 @@ For the format of FORMAT-LIST, see `workdir-selector-format'."
     (add-to-list 'ivy-sort-functions-alist `(,this-command . nil)))
   (unless worksheets
     (user-error "No worksheets available"))
-  (let* ((alist  (workdir-worksheets-as-alist (workdir-sort-by-date worksheets)))
+  (let* ((alist  (workdir-worksheets-for-completion (workdir-sort-by-date worksheets)))
 	 (key    (completing-read prompt alist nil
 				  (not no-match-required)
 				  nil
