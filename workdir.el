@@ -655,7 +655,7 @@ do not set any initial input."
     ("s" workdir-visit-or-create-worksheet)
     ("v" workdir-visit-worksheet)
     ("i" workdir-ibuffer )
-    ("a" workdir-archive )
+    ("a" workdir-archive)
     ("f" workdir-counsel-find-project-file )
     ("d" workdir-delete)
     ("+" workdir-register)
