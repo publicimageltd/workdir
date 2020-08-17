@@ -4,150 +4,210 @@
 
 Workdir is a not-so-intelligent alternative to `projectile` and other
 project management tools for Emacs. It was written because I felt
-projectile to be too big, too complicated, and centered too much on
-the need of programmers. In my daily work, I usually do not need any
-version control for my projects, and I love to use org files to
-organize them (i.e., to plan actions and to take project-related
-notes). Thus, I got weary of always having to explicitly visit this
-organizing file -- and built some tools to automate this.
+`projectile` to be too big, too complicated to configure for my needs,
+and centered too much on the need of programmers. E.g., I do not need
+to put my project directories under version control. Furthermore, I
+organize each project with a separate org file, and I want this file
+to show up in the agenda list. Plus, I wanted to be able to create a
+new workdir quick and easy, and to move it out of the way just as
+quick.
+
+So `workdir` might be of use...
+
+ - ...if you work with changing (possibly small) projects, and you
+   want to be able to navigate quickly between them; and:
+ - ...if you like to organize these projects with the help of an org
+   file in which you list all the project-related todo items and other
+   stuff, and these items should show up in the org agenda.
 
 ## How it works
 
 The whole package is grouped around the notion of a **workdir**. A
-workdir is simply a directory with at least one single file, which is
-called the *work sheet*. The package allows you to access and create a
-persistent list of these work sheets (each in its own directory). In
-particular, it allows you to switch around between them quickly.
+workdir is simply a directory containing at least one single file,
+which is called the *worksheet*. The package allows you to access
+these workdirs and to navigate quickly to their respective worksheets.
 
-The workdir thus represents a project, and the **work sheet** serves
-as the permant access point to the project. The idea is that you use
-the work sheet to organize your project. In the work sheet, you store
-all notes, tasks and other relevant stuff for your project. In
-particular, if the work sheet is an org mode file, you can store TODO
-items which will be presented to you as an org mode sparse tree upon
-your first visit of that work sheet.
+A workdir thus represents a project, and the **worksheet** serves as a
+permant access point to this project. The idea is that you use the
+worksheet to organize the project. In the worksheet, you store all
+notes, tasks and other relevant organizational stuff for your project.
+In the workdir, you store all the files which are interesting for your
+project.
+
+It is recommended to use an org mode file as a worksheet. Then you can
+store TODO items which will be presented to you as an org mode sparse
+tree upon your first visit of that work sheet.
 
 ## Features
 
  * Interactively select, create, move and delete workdirs.
- * Interactively add the currently visited file as a work sheet.
- * Open `ibuffer` with all files belonging to the currently visited work
-   sheet.
- * Save and kill all buffers belonging to the currently visited work
-   sheet (kind of "cleaning up").
+ * Interactively 'archive' a workdir, that is, move it to another
+   directory to get it out of the way without deleting it.
+ * If a buffer visits a file belonging to a workdir, move to the root
+   file (i.e., the worksheet).
+ * Interactively add the currently visited file to the org mode agenda
+   ('register' the file), or remove it. This is useful to fine tune
+   what is shown in the agenda.
+ * Open `ibuffer` with all files belonging to the current workdir.
+ * Save and kill all buffers belonging to the current workdir (kind of
+   "cleaning up" the buffer space).
  * If the work sheet is an org mode file, open it with a sparse todo
    tree (action is customizable via hook).
- * Populate the data base automatically by finding all work sheets
-   within a given directory (no interactive function, only via elisp).
 
 ## Dependencies
 
-Workdir requires emacs >= 26.1. The package itself depends on the
-following packages:
+`Workdir` requires emacs >= 26.1 and the package `hydra`.
 
-* `reader-db`
- * `seq`
-
-You can find `reader-db` in [my repository](https://github.com/publicimageltd/reader-db "Link to repository 'reader-db'").
+`Workdir` uses `find` and `awk` to find the workdirs and retrieve the
+titles from the org documents (worksheets). On non-free operating
+systems, an alternative lisp implementation is used, which is
+unfortunately a tiny bit slower.
 
 # Setup
 
 ## Minimal setup
 
-Minimally, you have to set the variables `workdir-archive-directory`
-and `workdir-new-dirs-directory`.  I.e.:
+Minimally, you have to set three variables:
+
+ * `workdir-directories` - A list of directory names in which to look
+   for workdirs. Instead of a directory name, you can also use a
+   path to a file name, which will then be interpreted as a direct
+   pointer to a work sheet. In this way, you can add a single workdir
+   without being forced to add all workdirs within its parent
+   directory. Note that the file name has to be the same
+   as the one defined in `workdir-default-sheet` (default:
+   `konzeptblatt.org`).
+ * `workdir-archive-directory` - A single directory name which is used
+   for 'archiving' work dirs.
+ * `workdir-new-dirs-directory` - A directory in which new work dirs
+   will be created. 
 
 ``` emacs-lisp
 (use-package workdir
    :config
+   (setq workdir-directories '("~/Documents/projects" "~/.emacs.d/konzeptblatt.org"))
    (setq workdir-archive-directory  "~/Documents/archive")
    (setq workdir-new-dirs-directory "~/Documents/projects"))
 ```
 
+See the section "Variables" below for a more detailed listing of all
+customizable variables.
+
+## Common use cases 
+
+All interactive functions try to recognize the "current" work tree by
+guessing which workdir the currently visited file belongs to. This
+mechanism also works when visiting a directory via `dired`.
+
+The most used function will probably be
+`workdir-visit-or-create-worksheet`. This function presents a list of
+all current worksheets. The user can either select one of those and
+switch to it, or enter a non-matching name to create a new workdir.
+
+The second most used function (at least for me) is `workdir-archive`.
+When a project is finished, select it via the interactive prompt,
+affirm that it will be moved to the predefined directory, and you're
+done. The directory will not be archived if there are any unsaved
+files in it. You can call `workdir-save-and-kill-buffers` to safe all
+buffers belonging to the current worktree.
+
+If you want to look up one of the archived workdirs, call
+`workdir-visit-worksheet` with a prefix. You will be offered a list of
+all known directories in which you might find workdirs.
+
 ## Keybindings
 
-Workdir does not define any key binding by itself. I myself use a
-hydra. The hydra uses another function, which is not (yet) part of the
-package, `workdir-counsel-find-project-file`. This function offers you
-all files (recursive search) of the project with a certain suffix (in
-the case below, ending with .org or .pdf).
+Workdir does not define any key binding by itself. It offers a hydra,
+however. Bind any key you like to `workdir-hydra/body` in order to use
+the hydra. 
 
 ``` emacs-lisp
-;; The additional function to find a project file:
-  (defcustom workdir-counsel-find-file-initial-input "\\(org\\|pdf\\)$ "
-    "Initial input when using counsel to jump to a project file.")
-	
-  (defun workdir-counsel-find-project-file (&optional no-initial-input)
-    "Find file within the whole project, including subdirs.
-Initial input defaults to `workdir-counsel-find-file-initial-input'. 
-If called with prefix, do not set any initial input."
-    (interactive "P")
-    (unless (require 'counsel nil t)
-      (user-error "workdir-find-project-file: library `counsel' required"))
-    (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
-		       (workdir-guess-workdir)))
-		
-;; The hydra:
-  (defhydra workdir-hydra (:color blue :hint none)
-    "
-[_v_]isit or create workdir                    [_i_]buffer                     
-[_+_] add current file as worksheet            [_f_]ind file in workdir        
-[_u_]nregister current file                    [_r_]oot file
-                                             [_^_] dired root directory
-                        
-[_d_]elete workdir                             [_k_] save workdir files and kill its buffers
-[_a_]rchive workdir
-"
-    ("v" workdir-visit-or-create-worksheet )
-    ("i" workdir-ibuffer )
-    ("a" workdir-archive )
-    ("f" workdir-counsel-find-project-file )
-    ("d" workdir-delete)
-    ("u" workdir-unregister)
-    ("r" workdir-go-to-root)
-    ("^" workdir-dired-root)
-    ("k" workdir-save-and-kill-buffers )
-    ("+" workdir-add))
+(use-package workdir
+ :config
+  (setq workdir-directories           '("~/Documents/projects" "~/.emacs.d/konzeptblatt.org"))
+  (setq workdir-archive-directory   "~/Dokumente/archive")
+  (setq workdir-new-dirs-directory  "~/Dokumente/projects")
+  :bind
+  (:map global-map
+	("C-x p" . workdir-hydra/body)))
 ```
 
-Alternatively, use the following minimal configuration:
+Alternatively, you could adapt the following bindings:
 
 ``` emacs-lisp
 (use-package workdir
 	:bind
 	(:map global-map
-		("C-x p s" workdir-visit-or-create-worksheet)
-		("C-x p i" workdir-ibuffer)
-		("C-x p d" workdir-delete)
-		("C-x p a" workdir-archive)
-		("C-x p +" workdir-add)
-		("C-x p 0" workdir-save-and-kill-buffers)))
+		("C-x p s" . workdir-visit-or-create-worksheet)
+		("C-x p r" . workdir-go-to-root)
+		("C-x p i"  . workdir-ibuffer)
+		("C-x p d" . workdir-delete)
+		("C-x p a" . workdir-archive)
+		("C-x p +" . workdir-register)
+		("C-x p -"  . workdir-unregister)
+		("C-x p k" . workdir-save-and-kill-buffers)))
 ```
 
-# Customization
+If you use `counsel`, you can also bind the function
+`workdir-counsel-find-project-file`. This function offers a listing of
+all files of the current workdir, filtered by file suffix (see the
+variable `workdir-counsel-find-file-initial-input`). Per default, you
+will only see files ending either in `.org` or in `.pdf`
+
+``` emacs-lisp
+(use-package workdir
+	 :bind 
+ 	 (:map global-map
+		("C-x p f" . workdir-counsel-find-project-file)))
+```
+
+# Variables
 
 You can customize the following variables:
 
 <dl>
-<dt>workdir-database-name</dt>
-<dd>File name for the data base. Will be
-located in the user directory (i.e. `.emacs.d`)</dd>
 <dt>workdir-default-sheet</dt>
 <dd>Name used when creating new work sheets.
 Currently defaults to `konzeptblatt.org`. This is german and means
 	'a sheet of paper for conceptual stuff'.</dd>
+
+<dt>workdir-directories</dt>
+<dd> List of directories which might contain workdirs. Each element is
+either a directory path or the direct path to a worksheet. Note that a
+direct path to a worksheet is compared against
+`workdir-default-sheet`, so do not forget to update this variable if
+you choose another default directory name.</dd>
+
 <dt>workdir-archive-directory</dt>
 <dd> Default directory for archiving  workdirs.</dd>
+
 <dt> workdir-new-dirs-directory</dt>
-   <dd> Default directory when creating new</dd>
-	   <dt>workdir-visit-worksheet-hook</dt>
-	<dd>Hook with a list of functions
-which are called when visiting a work sheet the first time. The
-functions are called with the work sheet file as the current buffer
-and should not accept any argument.</dd>
+<dd> Default directory when creating new workdirs</dd>
+
+<dt> workdir-use-find-binary</dt>
+<dd> Use `find` to determine the workdirs; else use a (slower)
+alternative using elisp.</dd>
+
+<dt> workdir-use-awk-binary</dt> <dd> Use `awk` to determine the
+titles of the worksheets; else use a (slower) alternative using
+elisp.</dd>
+
+  <dt>workdir-visit-worksheet-hook</dt>  
+ <dd>Hook with a list of functions which are called when visiting a
+work sheet the first time. The functions are called with the work
+sheet file as the current buffer and should not accept any
+argument.</dd> 
+
 </dl>
 
 # Changelog
+
+## 0.3.
+
+Partial rewrite. The older versions used a persistent data base. This
+dependency has been removed now, there is no data base any more. The
+list of available workdirs is constructed anew each time the program
+prompts for a workdir.
 
 ## 0.2
 
