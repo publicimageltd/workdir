@@ -642,7 +642,7 @@ do not set any initial input."
   (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
 		     (workdir-guess-workdir)))
 
-  (defhydra workdir-hydra (:color blue :hint none)
+(defhydra workdir-hydra (:color blue :hint none)
     "
 [_s_]elect or create workdir                   [_i_]buffer
 [_+_] add file to org agenda file list         [_f_]ind file in workdir
