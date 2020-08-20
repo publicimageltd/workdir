@@ -390,7 +390,8 @@ If REGISTER-FILE is non-nil and the created file is in
       (let ((sheet (concat (file-name-as-directory path) sheet-name)))
 	(with-temp-file sheet) ;; create empty file
 	(when register-file
-	  (workdir-register sheet))))))
+	  (workdir-register sheet))
+	(find-file sheet)))))
 
 ;;;###autoload
 (defun workdir-create (name)
