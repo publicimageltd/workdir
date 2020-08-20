@@ -4,7 +4,7 @@
 
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((seq "2.20") (emacs "26.1") (hydra))
 ;; URL: https://github.com/publicimageltd/workdir
 
