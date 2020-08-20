@@ -5,7 +5,7 @@
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
 ;; Version: 0.3
-;; Package-Requires: ((seq "2.20") (emacs "26.1") (hydra))
+;; Package-Requires: ((seq "2.20") (emacs "26.1") (hydra "0"))
 ;; URL: https://github.com/publicimageltd/workdir
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -23,8 +23,8 @@
 
 ;;; Commentary:
 
-;; Lightweight project management. A 'workdir' is simply a directory
-;; with at least one single file (called 'work sheet'). 
+;; Lightweight project management.  A 'workdir' is simply a directory
+;; with at least one single file (called 'work sheet').
 
 ;; The tools provided are:
 ;;
@@ -39,6 +39,12 @@
 (require 'seq)
 (require 'hydra)
 
+;; Handle obsolete function names
+
+(defalias 'workdir-seq-contains-p
+  (if (fboundp 'seq-contains-p)
+      'seq-contains-p
+    'seq-contains))
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
 
@@ -170,12 +176,12 @@ If DIR is a path to a worksheet, return this file path."
 	 (unless (file-readable-p dir)
 	   (error "%s is not a valid directory" dir)))
       ;; else if find is not available:
-    (let* ((dirs (directory-files dir t nil t)))
-      (cl-labels ((create-name (s) (concat (file-name-as-directory s)
-					   workdir-default-sheet))
-		  (file-ok (f) (and (not (string-prefix-p "." f))
-				    (file-readable-p f))))
-	(seq-filter #'file-ok (seq-map #'create-name dirs)))))))
+      (let* ((dirs (directory-files dir t nil t)))
+	(cl-labels ((create-name (s) (concat (file-name-as-directory s)
+					     workdir-default-sheet))
+		    (file-ok (f) (and (not (string-prefix-p "." f))
+				      (file-readable-p f))))
+	  (seq-filter #'file-ok (seq-map #'create-name dirs)))))))
 
 (defun workdir-find-sheets (dirs)
   "Return all workdirs within DIRS, a list of directory names."
@@ -193,9 +199,9 @@ user prompt for an alternative basedir."
 							 workdir-additional-dirs)
 						 nil t)
 	       workdir-directories)))
-  (or
-   (workdir-find-sheets dir)
-   (user-error (format "Directory '%s' contains no workdirs." dir)))))
+    (or
+     (workdir-find-sheets dir)
+     (user-error (format "Directory '%s' contains no workdirs." dir)))))
 
 ;; * Prettify paths
 
@@ -276,7 +282,7 @@ an alist will be passed to the function. This alist matches each
 file name with the title of the corresponding worksheet.
 
 If the return value of the function is nil, it will be converted
-to an empty string. 
+to an empty string.
 
 All results will be joined with a blank space.")
 
@@ -293,7 +299,7 @@ Use the alist PREFETCHED-TITLES, if passed."
 
 (defun workdir-selector-agenda-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
-  (when (seq-contains (org-agenda-files) worksheet) " (Agenda)"))
+  (when (workdir-seq-contains (org-agenda-files) worksheet) " (Agenda)"))
 
 (defun workdir-selector-visited-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
@@ -308,7 +314,9 @@ Use the alist PREFETCHED-TITLES, if passed."
 
 (defun workdir-selector-build-item (format-list prefetched-titles worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
-For the format of FORMAT-LIST, see `workdir-selector-format'."
+For the format of FORMAT-LIST, see `workdir-selector-format'.
+PREFETCHED-TITLES is an alist associating the filename with the
+document title. It might be used by a function from `workdir-selector-format'."
   (string-join (seq-map (lambda (spec)
 			  (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet prefetched-titles) "")))
 			format-list)
@@ -420,7 +428,7 @@ point to an existing file, create a new workdir with that name."
   (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Select or create a work dir: " t)))
   (unless workdir-new-dirs-directory
     (user-error "Variable `workdir-new-dirs-directory' has to be set"))
-  (if (not (seq-contains (workdir-get-worksheets) worksheet #'string=))
+  (if (not (workdir-seq-contains (workdir-get-worksheets) worksheet #'string=))
       (workdir-create worksheet)
     (workdir-visit-worksheet worksheet)))
 
@@ -428,7 +436,7 @@ point to an existing file, create a new workdir with that name."
 
 ;;;###autoload
 (defun workdir-register (worksheet)
-  "Add WORKSHEET to the org agenda list"
+  "Add WORKSHEET to the org agenda list."
   (interactive (list (workdir-guess-or-prompt-worksheet "Add worksheet to org agenda list: ")))
   (with-current-buffer (find-file-noselect worksheet)
     (when (eq major-mode 'org-mode)
@@ -614,10 +622,10 @@ Set the mark before switching to the file."
   (interactive)
   (if-let ((target-dir (workdir-guess-workdir))
 	   (target-sheet (concat (file-name-as-directory target-dir) workdir-default-sheet)))
-    (if (file-readable-p target-sheet)
-	(workdir-visit-worksheet target-sheet)
-      (message "Could not find work sheet file, opening work directory instead.")
-      (dired target-dir))
+      (if (file-readable-p target-sheet)
+	  (workdir-visit-worksheet target-sheet)
+	(message "Could not find work sheet file, opening work directory instead.")
+	(dired target-dir))
     (user-error "No workdir project associated with current buffer")))
 
 ;;;###autoload
@@ -634,12 +642,14 @@ Set the mark before switching to the file."
   :type 'regexp)
 
 (defun workdir-counsel-find-project-file (&optional no-initial-input)
-  "Find file within project. Initial input defaults to
-`workdir-counsel-find-file-initial-input'. If called with prefix,
-do not set any initial input."
+  "Find file within the workdir project.
+Initial input defaults to `workdir-counsel-find-file-initial-input'.
+
+If called with prefix arg NO-INITIAL-INPUT, do not set any
+initial input."
   (interactive "P")
   (unless (require 'counsel nil t)
-    (user-error "workdir-find-project-file: library `counsel' required"))
+    (user-error "Workdir-find-project-file: library `counsel' required"))
   (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
 		     (workdir-guess-workdir)))
 
