@@ -299,7 +299,7 @@ Use the alist PREFETCHED-TITLES, if passed."
 
 (defun workdir-selector-agenda-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
-  (when (workdir-seq-contains (org-agenda-files) worksheet) " (Agenda)"))
+  (when (workdir-seq-contains-p (org-agenda-files) worksheet) " (Agenda)"))
 
 (defun workdir-selector-visited-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a currently visited buffer."
@@ -428,7 +428,7 @@ point to an existing file, create a new workdir with that name."
   (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Select or create a work dir: " t)))
   (unless workdir-new-dirs-directory
     (user-error "Variable `workdir-new-dirs-directory' has to be set"))
-  (if (not (workdir-seq-contains (workdir-get-worksheets) worksheet #'string=))
+  (if (not (workdir-seq-contains-p (workdir-get-worksheets) worksheet #'string=))
       (workdir-create worksheet)
     (workdir-visit-worksheet worksheet)))
 
