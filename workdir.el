@@ -193,10 +193,12 @@ If DIR is a path to a worksheet, return this file path."
 Returns a list file paths. Option PROMPT-FOR-DIR lets the
 user prompt for an alternative basedir."
   (let ((dir (if prompt-for-dir (completing-read " Select basedir:"
-						 (append (list workdir-new-dirs-directory)
-							 (list workdir-archive-directory)
-							 workdir-directories
-							 workdir-additional-dirs)
+						 (seq-uniq 
+						  (append (list workdir-new-dirs-directory)
+							  (list workdir-archive-directory)
+							  workdir-directories
+							  workdir-additional-dirs)
+						  #'string=)
 						 nil t)
 	       workdir-directories)))
     (or
