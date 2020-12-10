@@ -655,6 +655,27 @@ initial input."
   (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
 		     (workdir-guess-workdir)))
 
+(defvar workdir-find-file-filter
+  '(:filter "\\(org\\|pdf\\)$"
+	    :description "(.org or .pdf)")
+  "Predefined filter (regexp) for `workdir-find-project-file'.")
+
+(defun workdir-find-project-file (&optional no-initial-input)
+  "Find files with predefined suffix in the workdir project.
+If called with prefix arg NO-INITIAL-INPUT, do not set any
+initial input."
+  (interactive "P")
+  (if-let* ((dir (workdir-guess-workdir))
+	    (filter (unless no-initial-input (plist-get workdir-find-file-filter :filter)))
+	    (files (with-temp-message "Collecting file list..."
+		     (directory-files-recursively dir (or filter ""))))
+	    (file (completing-read (concat "File"
+					   (unless no-initial-input (plist-get workdir-find-file-filter :description))
+					   ": ")
+					   files nil t)))
+      (find-file file)
+    (user-error "No file found")))
+
 (defhydra workdir-hydra (:color blue :hint none)
     "
 [_s_]elect or create workdir                   [_i_]buffer
@@ -669,7 +690,7 @@ initial input."
     ("v" workdir-visit-worksheet)
     ("i" workdir-ibuffer )
     ("a" workdir-archive)
-    ("f" workdir-counsel-find-project-file )
+    ("f" workdir-find-project-file )
     ("d" workdir-delete)
     ("+" workdir-register)
     ("-" workdir-unregister)
