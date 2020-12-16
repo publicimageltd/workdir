@@ -205,6 +205,13 @@ user prompt for an alternative basedir."
      (workdir-find-sheets dir)
      (user-error (format "Directory '%s' contains no workdirs." dir)))))
 
+(defun workdir-project-finder (dir)
+  "Find workspace project root in DIR (to be used by project.el)."
+  (let ((file (and (setq dir (locate-dominating-file dir workdir-default-sheet))
+		   (expand-file-name dir))))
+    (and file
+         (cons 'transient (file-name-directory file)))))
+
 ;; * Prettify paths
 
 (defun workdir-parent-directory (file)
@@ -697,6 +704,16 @@ initial input."
     ("r" workdir-go-to-root)
     ("^" workdir-dired-root)
     ("k" workdir-save-and-kill-buffers))
+
+(define-minor-mode workdir-mode
+  "Minor mode for using workdirs."
+  :lighter ""
+  :global t
+  (if workdir-mode
+      ;; enable:
+      (add-hook 'project-find-functions 'workdir-project-finder)
+    ;; disable:
+    (remove-hook 'project-find-functions 'workdir-project-finder)))
 
 (provide 'workdir)
 ;;; workdir.el ends here
