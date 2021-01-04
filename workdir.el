@@ -39,6 +39,7 @@
 (require 'seq)
 (require 'hydra)
 (require 'project)
+(require 'subr-x) ;; string functions; thread; when-let
 
 ;; Handle obsolete function names
 
@@ -474,8 +475,7 @@ point to an existing file, create a new workdir with that name."
   "Register all current worksheets as org agenda files."
   (interactive)
   (let* ((file-list (org-agenda-files t))
-	 (sheets    (workdir-get-worksheets))
-	 (diff      nil))
+	 (sheets    (workdir-get-worksheets)))
     (unless sheets
       (user-error "No worksheets to register"))
     (workdir-register-list sheets)
@@ -527,9 +527,10 @@ Also handles some edge cases, like dired or indirect buffers."
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
 Return NIL if no associated worksheet can be found."
-  (when-let* ((file-name (workdir-guess-file-name)))
-    (locate-dominating-file (file-name-directory file-name)
-			    workdir-default-sheet)))
+  (let (the-file-name)
+    (or (setq the-file-name (workdir-guess-file-name))
+	(locate-dominating-file (file-name-directory the-file-name)
+				workdir-default-sheet))))
 
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
