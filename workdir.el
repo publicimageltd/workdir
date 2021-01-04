@@ -38,6 +38,7 @@
 ;; * Dependencies
 (require 'seq)
 (require 'hydra)
+(require 'project)
 
 ;; Handle obsolete function names
 
@@ -526,10 +527,9 @@ Also handles some edge cases, like dired or indirect buffers."
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
 Return NIL if no associated worksheet can be found."
-  (when-let* ((file-name  (workdir-guess-file-name)))
+  (when-let* ((file-name (workdir-guess-file-name)))
     (locate-dominating-file (file-name-directory file-name)
 			    workdir-default-sheet)))
-	      
 
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
@@ -667,6 +667,7 @@ initial input."
 	    :description "(.org or .pdf)")
   "Predefined filter (regexp) for `workdir-find-project-file'.")
 
+;;;###autoload
 (defun workdir-find-project-file (&optional no-initial-input)
   "Find files with predefined suffix in the workdir project.
 If called with prefix arg NO-INITIAL-INPUT, do not set any
