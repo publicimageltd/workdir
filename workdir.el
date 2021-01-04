@@ -47,6 +47,11 @@
   (if (fboundp 'seq-contains-p)
       'seq-contains-p
     'seq-contains))
+
+;; Silence Byte Compiler
+
+(declare-function counsel-file-jump "counsel")
+
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
 
