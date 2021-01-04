@@ -39,6 +39,9 @@
 (require 'seq)
 (require 'hydra)
 (require 'project)
+(require 'org)
+(require 'ox) ;; org-export-get-environment; should be replacable 
+(require 'org-agenda)
 (require 'subr-x) ;; string functions; thread; when-let
 
 ;; Handle obsolete function names
