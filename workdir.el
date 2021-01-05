@@ -535,10 +535,9 @@ Also handles some edge cases, like dired or indirect buffers."
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
 Return NIL if no associated worksheet can be found."
-  (let (the-file-name)
-    (or (setq the-file-name (workdir-guess-file-name))
-	(locate-dominating-file (file-name-directory the-file-name)
-				workdir-default-sheet))))
+  (when-let* ((the-file-name (workdir-guess-file-name)))
+    (locate-dominating-file (file-name-directory the-file-name)
+			    workdir-default-sheet)))
 
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
