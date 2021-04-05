@@ -55,6 +55,7 @@
 
 (defvar selectrum-should-sort)
 (defvar ivy-sort-functions-alist)
+(defvar ibuffer-use-header-line)
 (declare-function counsel-file-jump "counsel")
 
 ;; --------------------------------------------------------------------------------
