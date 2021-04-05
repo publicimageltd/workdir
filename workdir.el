@@ -1,6 +1,6 @@
 ;;; workdir.el --- Use work sheets within dirs to organize your projects  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2020
+;; Copyright (C) 2018-2021
 
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
@@ -53,6 +53,8 @@
 
 ;; Silence Byte Compiler
 
+(defvar selectrum-should-sort)
+(defvar ivy-sort-functions-alist)
 (declare-function counsel-file-jump "counsel")
 
 ;; --------------------------------------------------------------------------------
@@ -98,9 +100,12 @@ selected at least once.")
 (defcustom workdir-directories nil
   "List of directories which might contain workdirs.
 Each element is either a directory path or the direct path to a
-worksheet. Note that a direct path to a worksheet is compared
-against `workdir-default-sheet', so do not forget to update this
-variable if you choose another default directory name."
+worksheet. Alternatively, it can be a function with zero argument
+which returns a path or a list of paths.
+
+Note that a direct path to a worksheet is compared against
+`workdir-default-sheet', so do not forget to update this variable
+if you choose another default directory name."
   :group 'workdir
   :type 'list)
 
@@ -195,6 +200,16 @@ If DIR is a path to a worksheet, return this file path."
 
 (defun workdir-find-sheets (dirs)
   "Return all workdirs within DIRS, a list of directory names."
+  ;; (let (acc res)
+  ;;   (cl-dolist (dir-or-fn dirs)
+  ;;     (setq res
+  ;; 	    (cl-etypecase dir-or-fn
+  ;; 	      (string   (workdir-find-sheets-in-dir dir-or-fn))
+  ;; 	      (list     (workdir-find-sheets dir-or-fn))
+  ;; 	      (function (workdir-find-sheets (funcall dir-or-fn)))))
+  ;;     (or res
+  ;; 	  (setq acc (cons res acc))))
+  ;;   (reverse acc)))  
   (apply #'append (seq-map #'workdir-find-sheets-in-dir
 			   (if (listp dirs) dirs (list dirs)))))
 
@@ -357,6 +372,7 @@ document title. It might be used by a function from `workdir-selector-format'."
   (unless worksheets
     (user-error "No worksheets available"))
   (let* ((alist  (workdir-worksheets-for-completion (workdir-sort-by-date worksheets)))
+	 (selectrum-should-sort nil)
 	 (key    (completing-read prompt alist nil
 				  (not no-match-required)
 				  nil
