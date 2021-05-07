@@ -31,7 +31,6 @@
 ;;  - Create, move and delete workdirs interactively
 ;;  - Some special handling if work sheets are in org mode
 ;;     - On visiting, org mode work sheets are called with a sparse todo tree
-;;  - Some API to automatically 'populate' the data base
 
 ;;; Code:
 ;; --------------------------------------------------------------------------------
@@ -291,10 +290,7 @@ FILE should point to a file, not to a directory."
   "Return an alist associating each file in FILES with its title."
   (let* ((readable-files    (seq-filter #'file-readable-p files))
 	 (nonreadable-files (seq-difference files readable-files #'string=))
-	 (titles            (if workdir-use-awk-binary
-				(let* ((awk-script "BEGIN{NR==1; FS=\":\"} {print $2; nextfile}"))
-				  (ignore-errors (apply #'process-lines "awk" awk-script readable-files)))
-			      (mapcar #'workdir-selector-get-title-from-file readable-files))))
+	 (titles            (mapcar #'workdir-selector-get-title-from-file readable-files)))
     (unless titles
       (setq nonreadable-files files
 	    readable-files nil))
