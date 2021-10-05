@@ -578,14 +578,15 @@ Return NIL if no associated worksheet can be found."
 
 (defun workdir-buffer-belongs-to-worksheet-p (worksheet-or-workdir buffer)
   "Check if BUFFER belongs to WORKSHEET-OR-WORKDIR.
-Argument can be either a full file path or a directory. If
+Argument can be either a full file path or a directory.  If
 WORKSHEET-OR-WORKDIR is a file path, check the buffer file name
 against its parent directory."
-  (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
-	      (file     (workdir-guess-file-name buffer))
-	      (exp-dir  (expand-file-name base-dir))
-	      (exp-file (expand-file-name file)))
-    (string-match-p (concat "\\`" (regexp-quote exp-dir)) exp-file)))
+  (unless (buffer-base-buffer buffer)
+    (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
+	        (file     (workdir-guess-file-name buffer))
+	        (exp-dir  (expand-file-name base-dir))
+	        (exp-file (expand-file-name file)))
+      (string-match-p (concat "\\`" (regexp-quote exp-dir)) exp-file))))
 
 
 (defun workdir-buffers (worksheet-or-workdir)
