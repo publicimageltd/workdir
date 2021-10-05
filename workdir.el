@@ -39,7 +39,7 @@
 (require 'hydra)
 (require 'project)
 (require 'org)
-(require 'ox) ;; org-export-get-environment; should be replacable 
+(require 'ox) ;; org-export-get-environment; should be replacable
 (require 'org-agenda)
 (require 'subr-x) ;; string functions; thread; when-let
 
@@ -100,7 +100,7 @@ selected at least once.")
 (defcustom workdir-directories nil
   "List of directories which might contain workdirs.
 Each element is either a directory path or the direct path to a
-worksheet. Alternatively, it can be a function with zero argument
+worksheet.  Alternatively, it can be a function with zero argument
 which returns a path or a list of paths.
 
 Note that a direct path to a worksheet is compared against
@@ -156,10 +156,10 @@ buffer current."
 (defsubst workdir-compose (fn &rest more-fn)
   "Return the composition of FN and MORE-FN."
   (seq-reduce (lambda (f g)
-		  (lambda (&rest args)
-		    (funcall f (apply g args))))
-	      more-fn
-	      fn))
+                  (lambda (&rest args)
+                    (funcall f (apply g args))))
+              more-fn
+              fn))
 
 (defun workdir-path-separator ()
   "Find out the path separator used by the operating system."
@@ -180,52 +180,52 @@ If DIR is a path to a worksheet, return this file path."
   (if (string= (file-name-nondirectory dir) workdir-default-sheet)
       (list (expand-file-name dir))
     (if workdir-use-find-binary
-	;; on linux:
-	(or
-	 (ignore-errors
-	   (process-lines  "find"
-			   (expand-file-name dir)
-			   "-maxdepth" "2"
-			   "-name" (replace-regexp-in-string "\\." "\\\\."
-							     workdir-default-sheet)))
-	 (unless (file-readable-p dir)
-	   (error "%s is not a valid directory" dir)))
+        ;; on linux:
+        (or
+         (ignore-errors
+           (process-lines  "find"
+                           (expand-file-name dir)
+                           "-maxdepth" "2"
+                           "-name" (replace-regexp-in-string "\\." "\\\\."
+                                                             workdir-default-sheet)))
+         (unless (file-readable-p dir)
+           (error "%s is not a valid directory" dir)))
       ;; else if find is not available:
       (let* ((dirs (directory-files dir t nil t)))
-	(cl-labels ((create-name (s) (concat (file-name-as-directory s)
-					     workdir-default-sheet))
-		    (file-ok (f) (and (not (string-prefix-p "." f))
-				      (file-readable-p f))))
-	  (seq-filter #'file-ok (seq-map #'create-name dirs)))))))
+        (cl-labels ((create-name (s) (concat (file-name-as-directory s)
+                                             workdir-default-sheet))
+                    (file-ok (f) (and (not (string-prefix-p "." f))
+                                      (file-readable-p f))))
+          (seq-filter #'file-ok (seq-map #'create-name dirs)))))))
 
 (defun workdir-find-sheets (dirs)
   "Return all workdirs within DIRS, a list of directory names."
   ;; (let (acc res)
   ;;   (cl-dolist (dir-or-fn dirs)
   ;;     (setq res
-  ;; 	    (cl-etypecase dir-or-fn
-  ;; 	      (string   (workdir-find-sheets-in-dir dir-or-fn))
-  ;; 	      (list     (workdir-find-sheets dir-or-fn))
-  ;; 	      (function (workdir-find-sheets (funcall dir-or-fn)))))
+  ;;        (cl-etypecase dir-or-fn
+  ;;          (string   (workdir-find-sheets-in-dir dir-or-fn))
+  ;;          (list     (workdir-find-sheets dir-or-fn))
+  ;;          (function (workdir-find-sheets (funcall dir-or-fn)))))
   ;;     (or res
-  ;; 	  (setq acc (cons res acc))))
-  ;;   (reverse acc)))  
+  ;;      (setq acc (cons res acc))))
+  ;;   (reverse acc)))
   (apply #'append (seq-map #'workdir-find-sheets-in-dir
-			   (if (listp dirs) dirs (list dirs)))))
+                           (if (listp dirs) dirs (list dirs)))))
 
 (defun workdir-get-worksheets (&optional prompt-for-dir)
   "Return the work sheets in `workdir-directories'.
-Returns a list file paths. Option PROMPT-FOR-DIR lets the
+Returns a list file paths.  Option PROMPT-FOR-DIR lets the
 user prompt for an alternative basedir."
   (let ((dir (if prompt-for-dir (completing-read " Select basedir:"
-						 (seq-uniq 
-						  (append (list workdir-new-dirs-directory)
-							  (list workdir-archive-directory)
-							  workdir-directories
-							  workdir-additional-dirs)
-						  #'string=)
-						 nil t)
-	       workdir-directories)))
+                                                 (seq-uniq
+                                                  (append (list workdir-new-dirs-directory)
+                                                          (list workdir-archive-directory)
+                                                          workdir-directories
+                                                          workdir-additional-dirs)
+                                                  #'string=)
+                                                 nil t)
+               workdir-directories)))
     (or
      (workdir-find-sheets dir)
      (user-error (format "Directory '%s' contains no workdirs." dir)))))
@@ -233,7 +233,7 @@ user prompt for an alternative basedir."
 (defun workdir-project-finder (dir)
   "Find workspace project root in DIR (to be used by project.el)."
   (let ((file (and (setq dir (locate-dominating-file dir workdir-default-sheet))
-		   (expand-file-name dir))))
+                   (expand-file-name dir))))
     (and file
          (cons 'transient (file-name-directory file)))))
 
@@ -243,9 +243,9 @@ user prompt for an alternative basedir."
   "Return the parent directory of FILE.
 If FILE has a trailing slash, it is treated as a directory path."
   (let* ((file-name  (file-name-directory (expand-file-name file)))
-	 (regexp     (replace-regexp-in-string "/" (regexp-quote (workdir-path-separator)) workdir-parent-dir-regexp)))
+         (regexp     (replace-regexp-in-string "/" (regexp-quote (workdir-path-separator)) workdir-parent-dir-regexp)))
     (if (string-match regexp file-name)
-	(match-string 1 file-name)
+        (match-string 1 file-name)
       "")))
 
 (defun workdir-abbreviate-path (file &optional _)
@@ -267,33 +267,33 @@ FILE should point to a file, not to a directory."
   (with-current-buffer buf
     (let (org-struct)
       (when (and (derived-mode-p 'org-mode)
-		 (setq org-struct (plist-get (org-export-get-environment) :title)))
-	(substring-no-properties (car org-struct))))))
+                 (setq org-struct (plist-get (org-export-get-environment) :title)))
+        (substring-no-properties (car org-struct))))))
 
 (defun workdir-selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
   (if workdir-use-awk-binary
       (let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
-	     (title    (ignore-errors
-			 (shell-command-to-string
-			  (concat "awk " awk-script " '" file "'")))))
-	(when title
-	  (string-trim title)))
+             (title    (ignore-errors
+                         (shell-command-to-string
+                          (concat "awk " awk-script " '" file "'")))))
+        (when title
+          (string-trim title)))
     (let* ((loaded (get-file-buffer file))
-	   (buf    (or loaded (find-file-noselect file)))
-	   (title  (workdir-selector-get-title-from-buf buf)))
+           (buf    (or loaded (find-file-noselect file)))
+           (title  (workdir-selector-get-title-from-buf buf)))
       (unless loaded
-	(kill-buffer buf))
+        (kill-buffer buf))
       title)))
 
 (defun workdir-selector-prefetch-titles (files)
   "Return an alist associating each file in FILES with its title."
   (let* ((readable-files    (seq-filter #'file-readable-p files))
-	 (nonreadable-files (seq-difference files readable-files #'string=))
-	 (titles            (mapcar #'workdir-selector-get-title-from-file readable-files)))
+         (nonreadable-files (seq-difference files readable-files #'string=))
+         (titles            (mapcar #'workdir-selector-get-title-from-file readable-files)))
     (unless titles
       (setq nonreadable-files files
-	    readable-files nil))
+            readable-files nil))
     ;; and here is the result:
     (append
      (seq-mapn #'cons nonreadable-files (mapcar #'ignore nonreadable-files))
@@ -308,8 +308,8 @@ FILE should point to a file, not to a directory."
   "Format specification for displaying a worksheet as selection candidate.
 This has to be a list defining the format string and a function.
 The function takes the path as an argument and returns the data
-appropriate for the format string. As a second optional argument,
-an alist will be passed to the function. This alist matches each
+appropriate for the format string.  As a second optional argument,
+an alist will be passed to the function.  This alist matches each
 file name with the title of the corresponding worksheet.
 
 If the return value of the function is nil, it will be converted
@@ -325,8 +325,8 @@ Use the alist PREFETCHED-TITLES, if passed."
       (assoc-default worksheet prefetched-titles #'string= "")
     (let* ((buf  (get-file-buffer worksheet)))
       (if buf
-	  (workdir-selector-get-title-from-buf buf)
-	(workdir-selector-get-title-from-file worksheet)))))
+          (workdir-selector-get-title-from-buf buf)
+        (workdir-selector-get-title-from-file worksheet)))))
 
 (defun workdir-selector-agenda-info (worksheet &optional _)
   "Return a string indicating that WORKSHEET is a registered org agenda file."
@@ -340,27 +340,27 @@ Use the alist PREFETCHED-TITLES, if passed."
   "Return a string indicating that WORKSHEET is modified and not saved yet."
   (let (buf)
     (when (and (setq buf (find-buffer-visiting worksheet))
-	       (buffer-modified-p buf))
+               (buffer-modified-p buf))
       "*")))
 
 (defun workdir-selector-build-item (format-list prefetched-titles worksheet)
   "Build a string representing WORKSHEET for minibuffer selection.
 For the format of FORMAT-LIST, see `workdir-selector-format'.
 PREFETCHED-TITLES is an alist associating the filename with the
-document title. It might be used by a function from `workdir-selector-format'."
+document title.  It might be used by a function from `workdir-selector-format'."
   (string-join (seq-map (lambda (spec)
-			  (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet prefetched-titles) "")))
-			format-list)
-	       " "))
+                          (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet prefetched-titles) "")))
+                        format-list)
+               " "))
 
 
 (defun workdir-worksheets-for-completion (worksheets)
   "Return WORKSHEETS as an alist suitable for `completing-read'."
   (with-temp-message "Collecting worksheets..."
     (seq-group-by (apply-partially #'workdir-selector-build-item
-				   workdir-selector-format
-				   (workdir-selector-prefetch-titles worksheets))
-		  worksheets)))
+                                   workdir-selector-format
+                                   (workdir-selector-prefetch-titles worksheets))
+                  worksheets)))
 
 (defun workdir-prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
@@ -369,14 +369,14 @@ document title. It might be used by a function from `workdir-selector-format'."
   (unless worksheets
     (user-error "No worksheets available"))
   (let* ((alist  (workdir-worksheets-for-completion (workdir-sort-by-date worksheets)))
-	 (selectrum-should-sort nil)
-	 (key    (completing-read prompt alist nil
-				  (not no-match-required)
-				  nil
-				  'workdir-selection-history))
-	 (path (cadr (assoc key alist))))
+         (selectrum-should-sort nil)
+         (key    (completing-read prompt alist nil
+                                  (not no-match-required)
+                                  nil
+                                  'workdir-selection-history))
+         (path (cadr (assoc key alist))))
     (if (and (null path) no-match-required)
-	key
+        key
       path)))
 
 ;; * Add-ons when visiting a worksheet:
@@ -384,7 +384,7 @@ document title. It might be used by a function from `workdir-selector-format'."
 (defun workdir-visit-todo-tree ()
   "Show org mode todo tree."
   (when (and (eq major-mode 'org-mode)
-	     (not (local-variable-p 'workdir-actively-chosen-buffer)))
+             (not (local-variable-p 'workdir-actively-chosen-buffer)))
     (save-window-excursion
       (org-show-todo-tree nil))))
 
@@ -401,11 +401,11 @@ document title. It might be used by a function from `workdir-selector-format'."
 With prefix PROMPT-FOR-BASEDIR set, prompt the user for a
 directory and return all workdirs in that directory."
   (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets current-prefix-arg) "Visit work dir: ")
-		     current-prefix-arg))
+                     current-prefix-arg))
   (ignore prompt-for-basedir) ;; silence byte compiler
   (push-mark nil t)
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
-			    (find-file-noselect worksheet))))
+                            (find-file-noselect worksheet))))
     ;; Maybe allow to pass an fn for more display flexibility?
     (switch-to-buffer target-buffer)
     (run-hooks 'workdir-visit-worksheet-hook)
@@ -425,13 +425,13 @@ If REGISTER-FILE is non-nil and the created file is in
 `org-mode`, also register the file as an agenda file."
   (let* ((path (concat (file-name-as-directory (expand-file-name dir)) name)))
     (if (file-exists-p path)
-	(user-error "Directory '%s' already exists" path)
+        (user-error "Directory '%s' already exists" path)
       (make-directory path)
       (let ((sheet (concat (file-name-as-directory path) sheet-name)))
-	(with-temp-file sheet) ;; create empty file
-	(when register-file
-	  (workdir-register sheet))
-	(find-file sheet)))))
+        (with-temp-file sheet) ;; create empty file
+        (when register-file
+          (workdir-register sheet))
+        (find-file sheet)))))
 
 ;;;###autoload
 (defun workdir-create (name)
@@ -443,7 +443,7 @@ The resulting workdir will be added to the agenda file list."
   (unless workdir-new-dirs-directory
     (user-error "Variable `workdir-new-dirs-directory' has to be set"))
   (when (or (null name) (string-blank-p name))
-    (user-error "No project name. Canceled"))
+    (user-error "No project name; canceled"))
   (when (string-match-p (regexp-quote (workdir-path-separator)) name)
     (user-error "Name '%s' must not contain a path separator" name))
   (setq name (workdir-sanitize-name name))
@@ -455,7 +455,7 @@ The resulting workdir will be added to the agenda file list."
 (defun workdir-visit-or-create-worksheet (worksheet)
   "Visit WORKSHEET in the selected window or create it.
 WORKSHEET must be either a path to an existing file or a string
-representing a new workdir to be created. If WORKSHEET does not
+representing a new workdir to be created.  If WORKSHEET does not
 point to an existing file, create a new workdir with that name."
   (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Select or create a work dir: " t)))
   (unless workdir-new-dirs-directory
@@ -477,17 +477,17 @@ point to an existing file, create a new workdir with that name."
 (defun workdir-register-list (worksheets)
   "Add a list of WORKSHEETS to the org agenda list."
   (let* (;; this is copied from `org-agenda-file-to-front'
-	 (file-alist (mapcar (lambda (f)
-			       (cons (file-truename f) f))
-			     (org-agenda-files t)))
-	 (sheets-alist (mapcar (lambda (f)
-				 (cons (file-truename f) f))
-			       worksheets))
-	 ;; cl-union might destroy the sequence order,
-	 ;; but we don't care:
-	 (new-list (cl-union file-alist sheets-alist
-			     :key #'car
-			     :test #'string=)))
+         (file-alist (mapcar (lambda (f)
+                               (cons (file-truename f) f))
+                             (org-agenda-files t)))
+         (sheets-alist (mapcar (lambda (f)
+                                 (cons (file-truename f) f))
+                               worksheets))
+         ;; cl-union might destroy the sequence order,
+         ;; but we don't care:
+         (new-list (cl-union file-alist sheets-alist
+                             :key #'car
+                             :test #'string=)))
     (org-store-new-agenda-file-list (mapcar #'cdr new-list))
     (org-install-agenda-files-menu)))
 
@@ -496,13 +496,13 @@ point to an existing file, create a new workdir with that name."
   "Register all current worksheets as org agenda files."
   (interactive)
   (let* ((file-list (org-agenda-files t))
-	 (sheets    (workdir-get-worksheets)))
+         (sheets    (workdir-get-worksheets)))
     (unless sheets
       (user-error "No worksheets to register"))
     (workdir-register-list sheets)
     (message "Merged %d files into the agenda file list; effectively added %d files."
-	     (length sheets)
-	     (- (length (org-agenda-files t)) (length file-list)))))
+             (length sheets)
+             (- (length (org-agenda-files t)) (length file-list)))))
 
 ;;;###autoload
 (defun workdir-unregister (worksheet)
@@ -519,16 +519,16 @@ point to an existing file, create a new workdir with that name."
 If wanted, do it UNCONDITIONALLY (no questions asked)."
   (interactive (list (workdir-prompt-for-worksheet (workdir-get-worksheets) "Delete workdir: ")))
   (let* ((files      (directory-files (file-name-directory worksheet) nil directory-files-no-dot-files-regexp t))
-	 (dir-name   (abbreviate-file-name (file-name-directory worksheet))))
+         (dir-name   (abbreviate-file-name (file-name-directory worksheet))))
     (if (not (workdir-kill-buffers worksheet unconditionally))
-	(user-error "Could not kill all buffers belonging to the project; canceled")
+        (user-error "Could not kill all buffers belonging to the project; canceled")
       (if (or unconditionally
-	      (y-or-n-p (format "Directory '%s' contains %d files. Delete? " dir-name (length files))))
-	  (progn
-	    (workdir-unregister worksheet)
-	    (delete-directory (file-name-directory worksheet) t)
-	    (message "Deleted directory '%s'." dir-name))
-	(message "Canceled.")))))
+              (y-or-n-p (format "Directory '%s' contains %d files.  Delete? " dir-name (length files))))
+          (progn
+            (workdir-unregister worksheet)
+            (delete-directory (file-name-directory worksheet) t)
+            (message "Deleted directory '%s'." dir-name))
+        (message "Canceled.")))))
 
 
 ;; * Guess Workdir
@@ -544,29 +544,29 @@ Also handles some edge cases, like dired or indirect buffers."
        ((buffer-base-buffer) (with-current-buffer (buffer-base-buffer) (expand-file-name buffer-file-name)))
        (buffer-file-name (expand-file-name buffer-file-name))
        (t nil)))))
-     
+
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
 Return NIL if no associated worksheet can be found."
   (when-let* ((the-file-name (workdir-guess-file-name)))
     (locate-dominating-file (file-name-directory the-file-name)
-			    workdir-default-sheet)))
+                            workdir-default-sheet)))
 
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
   (when workdir
     (when-let ((match  (assoc-string (file-name-as-directory workdir)
-				     (seq-map (lambda (s) (cons (file-name-directory s) s))
-					      (workdir-get-worksheets)))))
+                                     (seq-map (lambda (s) (cons (file-name-directory s) s))
+                                              (workdir-get-worksheets)))))
       (cdr match))))
 
 (defun workdir-guess-or-prompt-visiting-workdir (prompt)
   "Guess current buffer's workdir, or PROMPT user to select a currently visited worksheet."
   (or (workdir-guess-workdir)
       (when-let ((worksheet (workdir-prompt-for-worksheet
-			     (seq-filter #'find-buffer-visiting (workdir-get-worksheets))
-			     prompt)))
-	(file-name-directory worksheet))))
+                             (seq-filter #'find-buffer-visiting (workdir-get-worksheets))
+                             prompt)))
+        (file-name-directory worksheet))))
 
 (defun workdir-guess-or-prompt-worksheet (prompt)
   "Guess current worksheet or PROMPT user to select one."
@@ -583,9 +583,9 @@ WORKSHEET-OR-WORKDIR is a file path, check the buffer file name
 against its parent directory."
   (unless (buffer-base-buffer buffer)
     (when-let* ((base-dir (file-name-directory worksheet-or-workdir))
-	        (file     (workdir-guess-file-name buffer))
-	        (exp-dir  (expand-file-name base-dir))
-	        (exp-file (expand-file-name file)))
+                (file     (workdir-guess-file-name buffer))
+                (exp-dir  (expand-file-name base-dir))
+                (exp-file (expand-file-name file)))
       (string-match-p (concat "\\`" (regexp-quote exp-dir)) exp-file))))
 
 
@@ -601,12 +601,12 @@ directory path."
   (interactive (list (workdir-guess-or-prompt-visiting-workdir " Save and kill all buffers belonging to workdir: ")))
   (when-let ((buffers (workdir-buffers worksheet-or-workdir)))
     (when (y-or-n-p (format "Save and kill all %d buffers belonging to '%s'? "
-			    (length buffers)
-			    (abbreviate-file-name worksheet-or-workdir)))
+                            (length buffers)
+                            (abbreviate-file-name worksheet-or-workdir)))
       (while (and buffers
-		  (with-current-buffer (pop buffers)
-		    (save-buffer)
-		    (kill-buffer)))))))
+                  (with-current-buffer (pop buffers)
+                    (save-buffer)
+                    (kill-buffer)))))))
 
 ;;;###autoload
 (defun workdir-ibuffer (worksheet)
@@ -614,7 +614,7 @@ directory path."
   (interactive (list (workdir-guess-or-prompt-visiting-workdir " Select workdir for ibuffer: ")))
   (let (ibuffer-use-header-line)
     (ibuffer nil "* WORKDIR IBUFFER *"
-	     `((predicate ,(workdir-compose (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet) #'buffer-name))))))
+             `((predicate ,(workdir-compose (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet) #'buffer-name))))))
 
 ;; * Archive
 
@@ -633,14 +633,14 @@ Returns t if all buffers have been successfully killed."
   "Move the whole directory of WORKSHEET to TARGET.
 Kill all open buffers before archiving."
   (interactive (let* ((interactive-worksheet (workdir-prompt-for-worksheet (workdir-get-worksheets) " Select workdir to move: "))
-		      (interactive-target    (read-directory-name
-					      (format "Move '%s' to: " (workdir-abbreviate-path interactive-worksheet))
-					      (file-name-as-directory workdir-archive-directory) nil t)))
-		 (list interactive-worksheet interactive-target)))
+                      (interactive-target    (read-directory-name
+                                              (format "Move '%s' to: " (workdir-abbreviate-path interactive-worksheet))
+                                              (file-name-as-directory workdir-archive-directory) nil t)))
+                 (list interactive-worksheet interactive-target)))
   (unless (workdir-kill-buffers worksheet)
     (user-error "There are still buffers visiting files; could not archive workdir"))
   (let* ((from (file-name-directory worksheet))
-	 (to   (file-name-directory target)))
+         (to   (file-name-directory target)))
     (workdir-unregister worksheet)
     (rename-file from to)
     (message "Moved %s to %s." from to)))
@@ -652,11 +652,11 @@ Kill all open buffers before archiving."
 Set the mark before switching to the file."
   (interactive)
   (if-let ((target-dir (workdir-guess-workdir))
-	   (target-sheet (concat (file-name-as-directory target-dir) workdir-default-sheet)))
+           (target-sheet (concat (file-name-as-directory target-dir) workdir-default-sheet)))
       (if (file-readable-p target-sheet)
-	  (workdir-visit-worksheet target-sheet)
-	(message "Could not find work sheet file, opening work directory instead.")
-	(dired target-dir))
+          (workdir-visit-worksheet target-sheet)
+        (message "Could not find work sheet file, opening work directory instead.")
+        (dired target-dir))
     (user-error "No workdir project associated with current buffer")))
 
 ;;;###autoload
@@ -682,11 +682,11 @@ initial input."
   (unless (require 'counsel nil t)
     (user-error "Workdir-find-project-file: library `counsel' required"))
   (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
-		     (workdir-guess-workdir)))
+                     (workdir-guess-workdir)))
 
 (defvar workdir-find-file-filter
   '(:filter "\\(org\\|pdf\\)$"
-	    :description "(.org or .pdf)")
+            :description "(.org or .pdf)")
   "Predefined filter (regexp) for `workdir-find-project-file'.")
 
 ;;;###autoload
@@ -696,13 +696,13 @@ If called with prefix arg NO-INITIAL-INPUT, do not set any
 initial input."
   (interactive "P")
   (if-let* ((dir (workdir-guess-workdir))
-	    (filter (unless no-initial-input (plist-get workdir-find-file-filter :filter)))
-	    (files (with-temp-message "Collecting file list..."
-		     (directory-files-recursively dir (or filter ""))))
-	    (file (completing-read (concat "File"
-					   (unless no-initial-input (plist-get workdir-find-file-filter :description))
-					   ": ")
-					   files nil t)))
+            (filter (unless no-initial-input (plist-get workdir-find-file-filter :filter)))
+            (files (with-temp-message "Collecting file list..."
+                     (directory-files-recursively dir (or filter ""))))
+            (file (completing-read (concat "File"
+                                           (unless no-initial-input (plist-get workdir-find-file-filter :description))
+                                           ": ")
+                                           files nil t)))
       (find-file file)
     (user-error "No file found")))
 
