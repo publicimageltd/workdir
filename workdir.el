@@ -35,6 +35,7 @@
 ;;; Code:
 ;; --------------------------------------------------------------------------------
 ;; * Dependencies
+
 (require 'seq)
 (require 'hydra)
 (require 'project)
@@ -66,12 +67,10 @@
 (defvar workdir-parent-dir-regexp
   "\\`.*/\\(.+?\\)/$"
   "Regexp matching the parent directory of a directory path.
-
 Path has to end with a trailing slash.")
 
 (defvar-local workdir-actively-chosen-buffer nil
   "Buffer local marker set by `workdir-visit-or-create-worksheet'.
-
 Useful for hooks to determine \"once only actions\":
 
 If the variable is undefined or its value nil, the buffer might
@@ -200,16 +199,6 @@ If DIR is a path to a worksheet, return this file path."
 
 (defun workdir-find-sheets (dirs)
   "Return all workdirs within DIRS, a list of directory names."
-  ;; (let (acc res)
-  ;;   (cl-dolist (dir-or-fn dirs)
-  ;;     (setq res
-  ;;        (cl-etypecase dir-or-fn
-  ;;          (string   (workdir-find-sheets-in-dir dir-or-fn))
-  ;;          (list     (workdir-find-sheets dir-or-fn))
-  ;;          (function (workdir-find-sheets (funcall dir-or-fn)))))
-  ;;     (or res
-  ;;      (setq acc (cons res acc))))
-  ;;   (reverse acc)))
   (apply #'append (seq-map #'workdir-find-sheets-in-dir
                            (if (listp dirs) dirs (list dirs)))))
 
@@ -228,7 +217,7 @@ user prompt for an alternative basedir."
                workdir-directories)))
     (or
      (workdir-find-sheets dir)
-     (user-error (format "Directory '%s' contains no workdirs." dir)))))
+     (user-error (format "Directory '%s' contains no workdirs" dir)))))
 
 (defun workdir-project-finder (dir)
   "Find workspace project root in DIR (to be used by project.el)."
@@ -317,7 +306,6 @@ to an empty string.
 
 All results will be joined with a blank space.")
 
-
 (defun workdir-selector-get-title (worksheet &optional prefetched-titles)
   "Return the title of WORKSHEET.
 Use the alist PREFETCHED-TITLES, if passed."
@@ -352,7 +340,6 @@ document title.  It might be used by a function from `workdir-selector-format'."
                           (format (nth 0 spec) (or (funcall (nth 1 spec) worksheet prefetched-titles) "")))
                         format-list)
                " "))
-
 
 (defun workdir-worksheets-for-completion (worksheets)
   "Return WORKSHEETS as an alist suitable for `completing-read'."
@@ -527,8 +514,8 @@ If wanted, do it UNCONDITIONALLY (no questions asked)."
           (progn
             (workdir-unregister worksheet)
             (delete-directory (file-name-directory worksheet) t)
-            (message "Deleted directory '%s'." dir-name))
-        (message "Canceled.")))))
+            (message "Deleted directory '%s'" dir-name))
+        (message "Canceled")))))
 
 
 ;; * Guess Workdir
