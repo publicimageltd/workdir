@@ -5,7 +5,7 @@
 ;; Author:  Public Image Ltd. (joerg@joergvolbers.de)
 ;; Keywords: files
 ;; Version: 0.3
-;; Package-Requires: ((seq "2.20") (emacs "26.1") (hydra "0"))
+;; Package-Requires: ((emacs "26.1") (hydra "0.12"))
 ;; URL: https://github.com/publicimageltd/workdir
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -128,7 +128,12 @@ if you choose another default directory name."
   :type 'list)
 
 (defcustom workdir-post-selection-hook nil
-  "Hook run after switching to a workdir."
+  "Hook run after switching to the main workdir buffer."
+  :group 'workdir
+  :type 'hook)
+
+(defcustom workdir-pre-selection-hook nil
+  "Hook run before switching to the main workdir buffer."
   :group 'workdir
   :type 'hook)
 
@@ -219,12 +224,20 @@ user prompt for an alternative basedir."
      (workdir-find-sheets dir)
      (user-error (format "Directory '%s' contains no workdirs" dir)))))
 
-(defun workdir-project-finder (dir)
-  "Find workspace project root in DIR (to be used by project.el)."
-  (let ((file (and (setq dir (locate-dominating-file dir workdir-default-sheet))
-                   (expand-file-name dir))))
-    (and file
-         (cons 'transient (file-name-directory file)))))
+;; TODO Auskommentiert, weil ab Emacs 29 anderes Rückgabeformat (siehe 
+;; https://blog.jmthornton.net/p/emacs-project-override), und unklar,
+;; ob "vc" oder "transient" als Rückkgabe. Siehe Deklaration für
+;; project.el in init.el
+;;
+;; (defun workdir-project-finder (dir)
+;;   "Find workspace project root in DIR (to be used by project.el)."
+;;   (let ((file (and (setq dir (locate-dominating-file dir workdir-default-sheet))
+;;                    (expand-file-name dir))))
+;;     (when root (if (version<= emacs-version "28")
+;;                    (cons 'vc root)
+;;                  (list 'vc backend root)))
+;;     (when file      
+;;       (cons 'transient (file-name-directory file)))))
 
 ;; * Prettify paths
 
@@ -349,6 +362,10 @@ document title.  It might be used by a function from `workdir-selector-format'."
                                    (workdir-selector-prefetch-titles worksheets))
                   worksheets)))
 
+;; (defun workdir-worksheets ()
+;;   "Return all worksheets suitable for completion."
+;;   (workdir-worksheets-for-completion (workdir-get-worksheets)))
+
 (defun workdir-prompt-for-worksheet (worksheets prompt &optional no-match-required)
   "PROMPT the user to select one of WORKSHEETS."
   (when (featurep 'ivy)
@@ -394,6 +411,7 @@ directory and return all workdirs in that directory."
   (let* ((target-buffer (or (find-buffer-visiting worksheet)
                             (find-file-noselect worksheet))))
     ;; Maybe allow to pass an fn for more display flexibility?
+    (run-hooks 'workdir-pre-selection-hook)
     (switch-to-buffer target-buffer)
     (run-hooks 'workdir-visit-worksheet-hook)
     (setq-local workdir-actively-chosen-buffer t)
@@ -522,7 +540,7 @@ If wanted, do it UNCONDITIONALLY (no questions asked)."
 
 (defun workdir-guess-file-name (&optional buffer)
   "Return the file name of BUFFER.
-Also handles some edge cases, like dired or indirect buffers."
+Also handles some edge cases, like Dired or indirect buffers."
   (if (stringp buffer)
       buffer
     (with-current-buffer (or buffer (current-buffer))
@@ -539,6 +557,16 @@ Return NIL if no associated worksheet can be found."
     (locate-dominating-file (file-name-directory the-file-name)
                             workdir-default-sheet)))
 
+(defun workdir-worksheet-buffer-p (buf)
+  "Check if BUF is a worksheet within a workdir."
+  (with-current-buffer buf
+    (and
+     (not (buffer-base-buffer))
+     (buffer-file-name)
+     (string-match-p (concat (regexp-quote workdir-default-sheet) "$")
+                     (buffer-file-name))
+     (not (not (workdir-guess-workdir))))))
+      
 (defun workdir-get-worksheet (workdir)
   "Return the worksheet associated with WORKDIR."
   (when workdir
@@ -548,7 +576,7 @@ Return NIL if no associated worksheet can be found."
       (cdr match))))
 
 (defun workdir-guess-or-prompt-visiting-workdir (prompt)
-  "Guess current buffer's workdir, or PROMPT user to select a currently visited worksheet."
+  "Guess current buffer's workdir, or PROMPT user."
   (or (workdir-guess-workdir)
       (when-let ((worksheet (workdir-prompt-for-worksheet
                              (seq-filter #'find-buffer-visiting (workdir-get-worksheets))
@@ -577,7 +605,7 @@ against its parent directory."
 
 
 (defun workdir-buffers (worksheet-or-workdir)
-  "Return all open buffers, including dired, for WORKSHEET-OR-WORKDIR.
+  "Return all open buffers, including Dired, for WORKSHEET-OR-WORKDIR.
 Argument can be either a full path to a worksheet file or just a
 directory path."
   (seq-filter (workdir-curry #'workdir-buffer-belongs-to-worksheet-p worksheet-or-workdir) (buffer-list)))
@@ -648,7 +676,7 @@ Set the mark before switching to the file."
 
 ;;;###autoload
 (defun workdir-dired-root ()
-  "Open root directory of current workdir in dired."
+  "Open root directory of current workdir in Dired."
   (interactive)
   (dired (workdir-guess-workdir)))
 
@@ -718,12 +746,15 @@ initial input."
 (define-minor-mode workdir-mode
   "Minor mode for using workdirs."
   :lighter ""
+  :require 'workdir
   :global t
-  (if workdir-mode
-      ;; enable:
-      (add-hook 'project-find-functions 'workdir-project-finder)
-    ;; disable:
-    (remove-hook 'project-find-functions 'workdir-project-finder)))
+  ;; NOTE turned off, see defun workdir-project-finder 
+  ;; (if workdir-mode
+  ;;     ;; enable:
+  ;;     (add-hook 'project-find-functions 'workdir-project-finder)
+  ;;   ;; disable:
+  ;;   (remove-hook 'project-find-functions 'workdir-project-finder))
+  )
 
 (provide 'workdir)
 ;;; workdir.el ends here
