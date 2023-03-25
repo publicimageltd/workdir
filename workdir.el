@@ -528,12 +528,15 @@ Also handles some edge cases, like Dired or indirect buffers."
        (buffer-file-name (expand-file-name buffer-file-name))
        (t nil)))))
 
+(defun workdir-find-root (dir-or-file)
+  "Get root of the workdir directory to which DIR-OR-FILE belongs, or nil."
+  (locate-dominating-file dir-or-file workdir-default-sheet))
+
 (defun workdir-guess-workdir ()
   "Guess the workdir the current buffer's file might belong to.
 Return NIL if no associated worksheet can be found."
   (when-let* ((the-file-name (workdir-guess-file-name)))
-    (locate-dominating-file (file-name-directory the-file-name)
-                            workdir-default-sheet)))
+    (workdir-find-root the-file-name)))
 
 (defun workdir-worksheet-buffer-p (buf)
   "Check if BUF is a worksheet within a workdir."
@@ -721,7 +724,7 @@ the worksheet is not found, return nil.
 
 Add this function to `project-find-functions' to help `project'
 recognize workdirs."
-    (let* ((root     (locate-dominating-file dir workdir-default-sheet))
+    (let* ((root     (workdir-find-root dir))
            (backend  (vc-responsible-backend dir t))
            (type     (if backend 'vc 'transient)))
       (when root
