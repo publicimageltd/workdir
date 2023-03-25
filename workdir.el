@@ -216,21 +216,6 @@ user prompt for an alternative basedir."
      (workdir-find-sheets dir)
      (user-error (format "Directory '%s' contains no workdirs" dir)))))
 
-;; TODO Auskommentiert, weil ab Emacs 29 anderes Rückgabeformat (siehe 
-;; https://blog.jmthornton.net/p/emacs-project-override), und unklar,
-;; ob "vc" oder "transient" als Rückkgabe. Siehe Deklaration für
-;; project.el in init.el
-;;
-;; (defun workdir-project-finder (dir)
-;;   "Find workspace project root in DIR (to be used by project.el)."
-;;   (let ((file (and (setq dir (locate-dominating-file dir workdir-default-sheet))
-;;                    (expand-file-name dir))))
-;;     (when root (if (version<= emacs-version "28")
-;;                    (cons 'vc root)
-;;                  (list 'vc backend root)))
-;;     (when file      
-;;       (cons 'transient (file-name-directory file)))))
-
 ;; * Prettify paths
 
 (defun workdir-parent-directory (file)
