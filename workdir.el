@@ -252,12 +252,11 @@ FILE should point to a file, not to a directory."
 (defun workdir-selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
   (if workdir-use-awk-binary
-      (let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
-             (title    (ignore-errors
-                         (shell-command-to-string
-                          (concat "awk " awk-script " '" file "'")))))
-        (when title
-          (string-trim title)))
+      (when-let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
+                  (title    (ignore-errors
+                              (shell-command-to-string
+                               (concat "awk " awk-script " '" file "'")))))
+        (string-trim title))
     (let* ((loaded (get-file-buffer file))
            (buf    (or loaded (find-file-noselect file)))
            (title  (workdir-selector-get-title-from-buf buf)))
