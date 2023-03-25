@@ -667,8 +667,12 @@ Set the mark before switching to the file."
 
 (defvar workdir-find-file-filter
   '(:filter "\\(org\\|pdf\\)$"
-            :description "(.org or .pdf)")
-  "Predefined filter (regexp) for `workdir-find-project-file'.")
+    :description "(.org or .pdf)")
+  "Predefined filter (regexp) for `workdir-find-project-file'.
+This is a property list with two keys.
+
+`:filter' defines a regexp for filtering the file list.
+`:description' a human readable, short description for the prompt.")
 
 ;;;###autoload
 (defun workdir-find-project-file (&optional no-initial-input)
