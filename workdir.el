@@ -130,8 +130,7 @@ if you choose another default directory name."
   :group 'workdir
   :type 'hook)
 
-(defcustom workdir-visit-worksheet-hook
-  '(workdir-visit-todo-tree  workdir-visit-bob)
+(defcustom workdir-visit-worksheet-hook nil
   "Hook called after visiting a worksheet.
 All functions are called in sequential order with the worksheet
 buffer current."
