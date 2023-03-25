@@ -83,7 +83,7 @@ selected at least once.")
 ;; --------------------------------------------------------------------------------
 ;; * Customizable Variables
 
-(defgroup workdir
+(defgroup workdir nil
   "Lightweight project management."
   :group 'files)
 
