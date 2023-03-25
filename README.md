@@ -7,15 +7,15 @@ project management tools for Emacs. It was written because I felt
 `projectile` to be too big, too complicated to configure for my needs,
 and centered too much on the need of programmers. E.g., I do not need
 to put my project directories under version control. Furthermore, I
-organize each project with a separate org file, and I want this file
+organize each project with a separate `org` file, and I want this file
 to show up in the agenda list. Plus, I wanted to be able to create a
 new workdir quick and easy, and to move it out of the way just as
 quick.
 
 So `workdir` might be of use...
 
- - ...if you work with changing (possibly small) projects, and you
-   want to be able to navigate quickly between them; and:
+ - ...if you work with changing (possibly small) org-based projects,
+   and you want to be able to navigate quickly between them; and:
  - ...if you like to organize these projects with the help of an org
    file in which you list all the project-related todo items and other
    stuff, and these items should show up in the org agenda.
@@ -40,27 +40,31 @@ tree upon your first visit of that work sheet.
 
 ## Features
 
- * Interactively select, create, move and delete workdirs.
- * Interactively 'archive' a workdir, that is, move it to another
-   directory to get it out of the way without deleting it.
- * If a buffer visits a file belonging to a workdir, move to the root
-   file (i.e., the worksheet).
- * Interactively add the currently visited file to the org mode agenda
-   ('register' the file), or remove it. This is useful to fine tune
-   what is shown in the agenda.
+ * Select, create, move and delete workdirs.
+ * 'Archive' a workdir by moving it to a predefined archive directory. 
+ * Quickly jump to the worksheet file from any file within the workdir. 
+ * Add the currently visited file to the org mode agenda ('register'
+   the file), or remove it. This is useful to fine tune what is shown
+   in the agenda.
  * Open `ibuffer` with all files belonging to the current workdir.
  * Save and kill all buffers belonging to the current workdir (kind of
    "cleaning up" the buffer space).
  * If the work sheet is an org mode file, open it with a sparse todo
-   tree (action is customizable via hook).
+   tree (not per default; action is customizable via hook).
+* All workdirs will be recognized by `project.el`, so that you can use
+  all `project-` functions.
 
 ## Dependencies
 
 `Workdir` requires emacs >= 26.1 and the package `hydra`.
 
+For some weird reasons, flycheck keeps telling me that `hydra` is not
+installable. I don't know why that should be. If you have any idea how
+to correct this, please file an issue.
+
 `Workdir` uses `find` and `awk` to find the workdirs and retrieve the
 titles from the org documents (worksheets). On non-free operating
-systems, an alternative lisp implementation is used, which is
+systems, an alternative lisp implementation is used which is
 unfortunately a tiny bit slower.
 
 # Setup
@@ -71,8 +75,8 @@ Minimally, you have to set three variables:
 
  * `workdir-directories` - A list of directory names in which to look
    for workdirs. Instead of a directory name, you can also use a
-   path to a file name, which will then be interpreted as a direct
-   pointer to a work sheet. In this way, you can add a single workdir
+   path to a file name which will then be interpreted as a direct
+   pointer to a work sheet. This way, you can add a single workdir
    without being forced to add all workdirs within its parent
    directory. Note that the file name has to be the same
    as the one defined in `workdir-default-sheet` (default:
@@ -101,17 +105,17 @@ mechanism also works when visiting a directory via `dired`.
 
 The most used function will probably be
 `workdir-visit-or-create-worksheet`. This function presents a list of
-all current worksheets. The user can either select one of those and
-switch to it, or enter a non-matching name to create a new workdir.
+all current worksheets. The user can either switch to one of those or
+enter a non-matching name to create a new workdir.
 
 The second most used function (at least for me) is `workdir-archive`.
-When a project is finished, select it via the interactive prompt,
-affirm that it will be moved to the predefined directory, and you're
-done. The directory will not be archived if there are any unsaved
-files in it. You can call `workdir-save-and-kill-buffers` to safe all
-buffers belonging to the current worktree.
+When a project is finished, select any workdir and move it to a
+predefined directory. The operation will be canceled if there are any
+unsaved files in the directory to be moved. Use
+`workdir-save-and-kill-buffers` to safe all buffers belonging to the
+current worktree.
 
-If you want to look up one of the archived workdirs, call
+To find a file in one of the archived workdirs, call
 `workdir-visit-worksheet` with a prefix. You will be offered a list of
 all known directories in which you might find workdirs.
 
@@ -146,19 +150,6 @@ Alternatively, you could adapt the following bindings:
 		("C-x p +" . workdir-register)
 		("C-x p -"  . workdir-unregister)
 		("C-x p k" . workdir-save-and-kill-buffers)))
-```
-
-If you use `counsel`, you can also bind the function
-`workdir-counsel-find-project-file`. This function offers a listing of
-all files of the current workdir, filtered by file suffix (see the
-variable `workdir-counsel-find-file-initial-input`). Per default, you
-will only see files ending either in `.org` or in `.pdf`
-
-``` emacs-lisp
-(use-package workdir
-	 :bind 
- 	 (:map global-map
-		("C-x p f" . workdir-counsel-find-project-file)))
 ```
 
 # Variables
@@ -201,6 +192,10 @@ argument.</dd>
 </dl>
 
 # Changelog
+
+## Current
+
+Some clean up of the code.
 
 ## 0.3.
 
