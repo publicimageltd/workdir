@@ -164,10 +164,12 @@ buffer current."
 ;; -----------------------------------------------------------
 ;; Find worksheets
 
-(defvar workdir-use-find-binary (not (eq window-system 'w32))
+(defvar workdir-use-find-binary (and (not (eq window-system 'w32))
+                                     (not (null (executable-find "find"))))
   "Use `find' to find worksheets; else use internal functions.")
 
-(defvar workdir-use-awk-binary (not (eq window-system 'w32))
+(defvar workdir-use-awk-binary (and (not (eq window-system 'w32))
+                                    (not (null (executable-find "awk"))))
   "Use `awk' to find worksheet titles; else use internal functions.")
 
 (defun workdir-find-sheets-in-dir (dir)
