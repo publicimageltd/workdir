@@ -29,8 +29,7 @@
 ;; The tools provided are:
 ;;
 ;;  - Create, move and delete workdirs interactively
-;;  - Some special handling if work sheets are in org mode
-;;     - On visiting, org mode work sheets are called with a sparse todo tree
+;;  - Register workdirs for project.el
 
 ;;; Code:
 ;; --------------------------------------------------------------------------------
@@ -56,7 +55,6 @@
 (defvar selectrum-should-sort)
 (defvar ivy-sort-functions-alist)
 (defvar ibuffer-use-header-line)
-(declare-function counsel-file-jump "counsel")
 
 ;; --------------------------------------------------------------------------------
 ;; * Some Basic Variables
@@ -86,7 +84,6 @@ selected at least once.")
 ;; * Customizable Variables
 
 (defgroup workdir
-  nil
   "Lightweight project management."
   :group 'files)
 
@@ -108,21 +105,17 @@ if you choose another default directory name."
   :group 'workdir
   :type 'list)
 
-(defcustom workdir-archive-directory
-  nil
+(defcustom workdir-archive-directory nil
   "Default move target for archiving work dirs."
   :group 'workdir
-  ;; FIXME does not work as expected
   :type '(repeat (choice file directory)))
 
-(defcustom workdir-new-dirs-directory
-  nil
+(defcustom workdir-new-dirs-directory  nil
   "Directory in which new work workdirs are created."
   :group 'workdir
   :type 'directory)
 
-(defcustom workdir-additional-dirs
-  nil
+(defcustom workdir-additional-dirs nil
   "List of directories to select from when selecting a workdir."
   :group 'workdir
   :type 'list)
@@ -687,18 +680,6 @@ Set the mark before switching to the file."
   :group 'workdir
   :type 'regexp)
 
-(defun workdir-counsel-find-project-file (&optional no-initial-input)
-  "Find file within the workdir project.
-Initial input defaults to `workdir-counsel-find-file-initial-input'.
-
-If called with prefix arg NO-INITIAL-INPUT, do not set any
-initial input."
-  (interactive "P")
-  (unless (require 'counsel nil t)
-    (user-error "Workdir-find-project-file: library `counsel' required"))
-  (counsel-file-jump (unless no-initial-input workdir-counsel-find-file-initial-input)
-                     (workdir-guess-workdir)))
-
 (defvar workdir-find-file-filter
   '(:filter "\\(org\\|pdf\\)$"
             :description "(.org or .pdf)")
@@ -708,7 +689,7 @@ initial input."
 (defun workdir-find-project-file (&optional no-initial-input)
   "Find files with predefined suffix in the workdir project.
 If called with prefix arg NO-INITIAL-INPUT, do not set any
-initial input."
+initial input (suffix)."
   (interactive "P")
   (if-let* ((dir (workdir-guess-workdir))
             (filter (unless no-initial-input (plist-get workdir-find-file-filter :filter)))
@@ -743,18 +724,32 @@ initial input."
     ("^" workdir-dired-root)
     ("k" workdir-save-and-kill-buffers))
 
+(defun workdir-find--root (dir)
+    "Find DIR's workdir project root.
+Look for the file `workdir-default-sheet' starting from DIR. If
+the worksheet is not found, return nil.
+
+Add this function to `project-find-functions' to help `project'
+recognize workdirs."
+    (let* ((root     (locate-dominating-file dir workdir-default-sheet))
+           (backend  (vc-responsible-backend dir t))
+           (type     (if backend 'vc 'transient)))
+      (when root
+        (if (version< emacs-version "29")
+            (cons type root)
+          ;; NOTE To check the return value, check `project-try-vc'
+          ;; TODO Once this is tested on Emacs 29, move it into workdir
+          (message "workdir-find--root: Warning; return value not tested for this Emacs version.")
+          (list type backend root)))))
+
 (define-minor-mode workdir-mode
   "Minor mode for using workdirs."
-  :lighter ""
+  :lighter "wDir"
   :require 'workdir
   :global t
-  ;; NOTE turned off, see defun workdir-project-finder 
-  ;; (if workdir-mode
-  ;;     ;; enable:
-  ;;     (add-hook 'project-find-functions 'workdir-project-finder)
-  ;;   ;; disable:
-  ;;   (remove-hook 'project-find-functions 'workdir-project-finder))
-  )
+  (if workdir-mode
+      (add-hook 'project-find-functions #'workdir-find--root t)
+    (remove-hook 'project-find-functions #'workdir-find--root)))
 
 (provide 'workdir)
 ;;; workdir.el ends here
