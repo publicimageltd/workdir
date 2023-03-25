@@ -677,19 +677,20 @@ This is a property list with two keys.
 ;;;###autoload
 (defun workdir-find-project-file (&optional no-initial-input)
   "Find files with predefined suffix in the workdir project.
-If called with prefix arg NO-INITIAL-INPUT, do not set any
-initial input (suffix)."
+For filtering, use the filter defined in `workdir-find-file-filter'.
+
+Prefix arg NO-INITIAL-INPUT deactivates filtering."
   (interactive "P")
-  (if-let* ((dir (workdir-guess-workdir))
-            (filter (unless no-initial-input (plist-get workdir-find-file-filter :filter)))
-            (files (with-temp-message "Collecting file list..."
-                     (directory-files-recursively dir (or filter ""))))
-            (file (completing-read (concat "File"
-                                           (unless no-initial-input (plist-get workdir-find-file-filter :description))
-                                           ": ")
-                                           files nil t)))
-      (find-file file)
-    (user-error "No file found")))
+  (let* (filter description)
+    (unless no-initial-input
+      (setq filter (plist-get workdir-find-file-filter :filter)
+            description (plist-get workdir-find-file-filter :description)))
+    (if-let* ((dir (workdir-guess-workdir))
+              (files (with-temp-message "Collecting file list..."
+                       (directory-files-recursively dir (or filter ""))))
+              (prompt (concat "Find file in workdir " description ": ")))
+        (find-file (completing-read prompt files nil t))
+      (user-error "No file found"))))
 
 (defhydra workdir-hydra (:color blue :hint none)
     "
