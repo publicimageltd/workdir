@@ -728,12 +728,9 @@ recognize workdirs."
            (backend  (vc-responsible-backend dir t))
            (type     (if backend 'vc 'transient)))
       (when root
-        (if (version< emacs-version "29")
-            (cons type root)
-          ;; NOTE To check the return value, check `project-try-vc'
-          ;; TODO Once this is tested on Emacs 29, move it into workdir
-          (message "workdir-find--root: Warning; return value not tested for this Emacs version.")
-          (list type backend root)))))
+        (if (eq type 'vc)
+            (list type backend root)
+          (cons type root)))))
 
 (define-minor-mode workdir-mode
   "Minor mode for using workdirs."
