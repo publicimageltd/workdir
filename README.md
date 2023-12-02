@@ -195,7 +195,9 @@ argument.</dd>
 
 ## Current
 
-Some clean up of the code.
+ - Move default branch to main
+ - Improve (and slow down) completion when not using `awk`
+ - Some clean up of the code.
 
 ## 0.3.
 
