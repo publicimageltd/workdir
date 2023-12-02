@@ -36,12 +36,12 @@
 ;; * Dependencies
 
 (require 'seq)
-(require 'hydra)
 (require 'project)
 (require 'org)
 (require 'ox) ;; org-export-get-environment; should be replacable
 (require 'org-agenda)
 (require 'subr-x) ;; string functions; thread; when-let
+(require 'hydra) ;; TODO This should become optional
 
 ;; Handle obsolete function names
 
@@ -259,25 +259,29 @@ FILE should point to a file, not to a directory."
                               (shell-command-to-string
                                (concat "awk " awk-script " '" file "'")))))
         (string-trim title))
-    (let* ((loaded (get-file-buffer file))
-           (buf    (or loaded (find-file-noselect file)))
-           (title  (workdir-selector-get-title-from-buf buf)))
-      (unless loaded
-        (kill-buffer buf))
-      title)))
+    (if (file-regular-p file)
+        (let* ((loaded (get-file-buffer file))
+               (buf    (or loaded (find-file-noselect file)))
+               (title  (or (workdir-selector-get-title-from-buf buf) (file-name-base file))))
+          (unless loaded
+            (kill-buffer buf))
+          title)
+      (file-name-base file))))
 
 (defun workdir-selector-prefetch-titles (files)
   "Return an alist associating each file in FILES with its title."
-  (let* ((readable-files    (seq-filter #'file-readable-p files))
-         (nonreadable-files (seq-difference files readable-files #'string=))
-         (titles            (mapcar #'workdir-selector-get-title-from-file readable-files)))
+  (let* ((regular-files    (seq-filter (lambda (file) (and (file-readable-p file)
+                                                           (file-regular-p file)))
+                                         files))
+         (directories (seq-difference files regular-files #'string=))
+         (titles            (mapcar #'workdir-selector-get-title-from-file regular-files)))
     (unless titles
-      (setq nonreadable-files files
-            readable-files nil))
+      (setq directories files
+            regular-files nil))
     ;; and here is the result:
     (append
-     (seq-mapn #'cons nonreadable-files (mapcar #'ignore nonreadable-files))
-     (seq-mapn #'cons readable-files    (mapcar #'string-trim titles)))))
+     (seq-mapn #'cons directories      (mapcar #'file-name-directory directories))
+     (seq-mapn #'cons regular-files    (mapcar #'string-trim titles)))))
 
 (defvar workdir-selector-format
   '(("%9s"     workdir-selector-agenda-info)
@@ -695,7 +699,7 @@ Prefix arg NO-INITIAL-INPUT deactivates filtering."
         (find-file (completing-read prompt files nil t))
       (user-error "No file found"))))
 
-(defhydra workdir-hydra (:color blue :hint none)
+  (defhydra workdir-hydra (:color blue :hint none)
     "
 [_s_]elect or create workdir                   [_i_]buffer
 [_+_] add file to org agenda file list         [_f_]ind file in workdir
@@ -705,17 +709,17 @@ Prefix arg NO-INITIAL-INPUT deactivates filtering."
 [_d_]elete workdir                             [_k_] save workdir files and kill its buffers
 [_a_]rchive workdir                            [_v_]isit workdir
 "
-    ("s" workdir-visit-or-create-worksheet)
-    ("v" workdir-visit-worksheet)
-    ("i" workdir-ibuffer )
-    ("a" workdir-archive)
-    ("f" workdir-find-project-file )
-    ("d" workdir-delete)
-    ("+" workdir-register)
-    ("-" workdir-unregister)
-    ("r" workdir-go-to-root)
-    ("^" workdir-dired-root)
-    ("k" workdir-save-and-kill-buffers))
+    ("s" #'workdir-visit-or-create-worksheet)
+    ("v" #'workdir-visit-worksheet)
+    ("i" #'workdir-ibuffer )
+    ("a" #'workdir-archive)
+    ("f" #'workdir-find-project-file )
+    ("d" #'workdir-delete)
+    ("+" #'workdir-register)
+    ("-" #'workdir-unregister)
+    ("r" #'workdir-go-to-root)
+    ("^" #'workdir-dired-root)
+    ("k" #'workdir-save-and-kill-buffers))
 
 (defun workdir-find--root (dir)
     "Find DIR's workdir project root.
@@ -732,6 +736,7 @@ recognize workdirs."
             (list type backend root)
           (cons type root)))))
 
+;;;###autoload
 (define-minor-mode workdir-mode
   "Minor mode for using workdirs."
   :lighter "wDir"
