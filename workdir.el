@@ -254,6 +254,7 @@ FILE should point to a file, not to a directory."
 (defun workdir-selector-get-title-from-file (file)
   "Return org document title of FILE, if any."
   (if workdir-use-awk-binary
+      ;; TODO Does not work with PROPERTIES block at beginning of file
       (when-let* ((awk-script "'BEGIN{NR==1; FS=\":\"} {print $2; nextfile}'")
                   (title    (ignore-errors
                               (shell-command-to-string
